@@ -1,0 +1,244 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// User management
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  timezone      String    @default("UTC")
+  preferences   Json?     // UserPreferences object
+  integrations  Json?     // IntegrationSettings object
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  goals          Goal[]
+  podMemberships PodMembership[]
+  attendance     SessionAttendance[]
+  checkIns       CheckIn[]
+  notifications  Notification[]
+  
+  @@map("users")
+}
+
+// Sprint and Goal management
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String
+  sprintType  String    // 'gym_3x_week' | 'net_prompting'
+  title       String
+  description String?
+  schedule    Json      // Schedule configuration
+  proofMethod String    // How user will prove completion
+  startDate   DateTime
+  endDate     DateTime
+  status      String    @default("active") // 'active' | 'completed' | 'cancelled'
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("goals")
+}
+
+// Pod system
+model Pod {
+  id             String   @id @default(cuid())
+  sprintType     String   // 'gym_3x_week' | 'net_prompting'
+  locale         String   @default("en")
+  maxMembers     Int      @default(4)
+  currentMembers Int      @default(0)
+  status         String   @default("forming") // 'forming' | 'active' | 'completed' | 'disbanded'
+  matchingData   Json?    // Compatibility scores and matching metadata
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  memberships PodMembership[]
+  sessions    LearningSession[]
+  
+  @@index([sprintType, status])
+  @@map("pods")
+}
+
+model PodMembership {
+  id           String   @id @default(cuid())
+  userId       String
+  podId        String
+  role         String   @default("member") // 'member' | 'facilitator'
+  matchSignals Json?    // Matching algorithm data
+  status       String   @default("active") // 'active' | 'left' | 'removed'
+  joinedAt     DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pod  Pod  @relation(fields: [podId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, podId])
+  @@map("pod_memberships")
+}
+
+// Learning Session management (renamed to avoid conflict with NextAuth Session)
+model LearningSession {
+  id                String   @id @default(cuid())
+  podId             String
+  scheduledAt       DateTime
+  startedAt         DateTime?
+  endedAt           DateTime?
+  videoUrl          String?
+  videoType         String   @default("jitsi") // 'jitsi' | 'zoom' | 'meet' | 'external'
+  status            String   @default("scheduled") // 'scheduled' | 'active' | 'completed' | 'cancelled'
+  attendanceRequired Boolean @default(true)
+  sessionNumber     Int      @default(1) // Track session sequence in sprint
+  remindersSent     Json?    // Track which reminders have been sent
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  pod        Pod                 @relation(fields: [podId], references: [id], onDelete: Cascade)
+  attendance SessionAttendance[]
+  coachDocs  CoachDoc[]
+  checkIns   CheckIn[]
+  
+  @@index([podId, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("learning_sessions")
+}
+
+model SessionAttendance {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  attended  Boolean  @default(false)
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Relations
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, userId])
+  @@map("session_attendance")
+}
+
+// AI Coach system
+model CoachDoc {
+  id            String   @id @default(cuid())
+  sessionId     String
+  version       Int      @default(1)
+  agenda        Json?    // Agenda items
+  notes         Json?    // Session notes
+  actionItems   Json?    // Action items
+  quiz          Json?    // Quiz data
+  proofChecklist Json?   // Proof checklist
+  createdAt     DateTime @default(now())
+
+  // Relations
+  session LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, version])
+  @@map("coach_docs")
+}
+
+// Progress tracking
+model CheckIn {
+  id            String   @id @default(cuid())
+  userId        String
+  sessionId     String?
+  submittedAt   DateTime @default(now())
+  attended      Boolean  @default(false)
+  rpe           Int?     // Rate of Perceived Exertion (1-10)
+  win           String   // One thing that went well
+  tweak         String   // One thing to improve
+  proofOfEffort Json?    // File uploads or descriptions
+  status        String   @default("submitted") // 'submitted' | 'late' | 'missed'
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session LearningSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  
+  @@map("check_ins")
+}
+
+// Notification system
+model Notification {
+  id           String    @id @default(cuid())
+  userId       String
+  type         String    // NotificationType enum values
+  channels     String    // JSON string: ['email', 'push', 'sms']
+  status       String    @default("pending") // 'pending' | 'sent' | 'failed' | 'cancelled'
+  priority     String    @default("normal") // 'low' | 'normal' | 'high' | 'urgent'
+  templateData Json      // Data for template rendering
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  failureReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, status])
+  @@index([status, scheduledFor])
+  @@map("notifications")
+}
