@@ -1,7 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/api/habits/route": "app/api/habits/route.js",
-  "/api/habits/[id]/complete/route": "app/api/habits/[id]/complete/route.js",
-  "/api/habits/[id]/route": "app/api/habits/[id]/route.js"
-}
