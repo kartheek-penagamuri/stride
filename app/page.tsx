@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { Eye, Target, Zap, PartyPopper, ArrowRight, Sparkles } from 'lucide-react'
+import { GoalInputModal } from '@/components/GoalInputModal'
+import { useRouter } from 'next/navigation'
 
 interface PrincipleCardProps {
   icon: React.ReactNode
@@ -55,6 +57,8 @@ const HabitStack: React.FC<HabitStackProps> = ({ title, items }: HabitStackProps
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,8 +72,27 @@ export default function Home() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+      const yOffset = -100 // Offset for sticky header
+      const y = element.getBoundingClientRect().top + window.scrollY + yOffset
+      
+      window.scrollTo({
+        top: y,
+        behavior: 'smooth'
+      })
     }
+  }
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+  }
+
+  const handleHabitsAdded = () => {
+    // Redirect to dashboard after habits are added
+    router.push('/dashboard')
   }
 
   const principles: Principle[] = [
@@ -164,7 +187,7 @@ export default function Home() {
               Start small, stack smart, achieve big.
             </p>
             <button 
-              onClick={() => scrollToSection('start')}
+              onClick={handleOpenModal}
               className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold rounded-full shadow-2xl hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
             >
               Start Your Journey
@@ -230,12 +253,6 @@ export default function Home() {
                   Start Tracking Habits
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </a>
-                <a
-                  href="/learning-together-platform/src/app/page.tsx"
-                  className="inline-flex items-center px-8 py-4 glass text-white font-semibold rounded-2xl hover:bg-white/20 transition-all duration-300"
-                >
-                  Learning Platform
-                </a>
               </div>
             </div>
           </div>
@@ -254,6 +271,13 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Goal Input Modal */}
+      <GoalInputModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onHabitsAdded={handleHabitsAdded}
+      />
     </div>
   )
 }

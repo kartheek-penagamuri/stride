@@ -1,4 +1,11 @@
-import { Habit, CreateHabitRequest, UpdateHabitRequest, ApiResponse } from './types'
+import { 
+  Habit, 
+  CreateHabitRequest, 
+  UpdateHabitRequest, 
+  ApiResponse,
+  GenerateHabitsRequest,
+  GenerateHabitsResponse
+} from './types'
 
 const API_BASE_URL = '/api'
 
@@ -69,6 +76,52 @@ export const habitApi = {
       method: 'POST',
     })
   },
+
+  // Bulk create habits
+  createBulk: async (habits: CreateHabitRequest[]): Promise<ApiResponse<{ habits: Habit[] }>> => {
+    const savedHabits: Habit[] = []
+    const errors: string[] = []
+
+    for (const habit of habits) {
+      const result = await apiRequest<{ habit: Habit }>('/habits', {
+        method: 'POST',
+        body: JSON.stringify(habit),
+      })
+
+      if (result.error) {
+        errors.push(result.error)
+      } else if (result.data?.habit) {
+        savedHabits.push(result.data.habit)
+      }
+    }
+
+    if (errors.length > 0 && savedHabits.length === 0) {
+      return { error: errors[0] }
+    }
+
+    return { data: { habits: savedHabits } }
+  },
+}
+
+// AI Habit Generation API functions
+export const aiApi = {
+  // Generate habits from a user goal using AI
+  generateHabitsFromGoal: async (goal: string): Promise<ApiResponse<GenerateHabitsResponse>> => {
+    if (!goal || goal.trim().length === 0) {
+      return { error: 'Goal cannot be empty' }
+    }
+
+    if (goal.length > 500) {
+      return { error: 'Goal must be 500 characters or less' }
+    }
+
+    const request: GenerateHabitsRequest = { goal: goal.trim() }
+
+    return apiRequest<GenerateHabitsResponse>('/ai/generate-habits', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
 }
 
 // Usage example:
@@ -77,4 +130,11 @@ export const habitApi = {
 //   console.error('Error:', error)
 // } else {
 //   console.log('Habits:', data?.habits)
+// }
+//
+// const { data, error } = await aiApi.generateHabitsFromGoal('I want to be healthier')
+// if (error) {
+//   console.error('Error:', error)
+// } else {
+//   console.log('Generated habits:', data?.habits)
 // }
