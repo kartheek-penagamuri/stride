@@ -161,7 +161,7 @@ Generate 5-7 clarifying questions to better understand their context and create 
 
   try {
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-5.1',
       instructions: CLARIFYING_QUESTIONS_INSTRUCTIONS,
       input: userInput,
       temperature: 0.7,
@@ -262,7 +262,7 @@ Generate habit recommendations in JSON format as specified in the instructions. 
 
   try {
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-5.1',
       instructions: HABIT_GENERATION_INSTRUCTIONS,
       input: userInput,
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
