@@ -17,6 +17,10 @@ interface OpenAIHabitResponse {
   }>
 }
 
+interface OpenAIQuestionsResponse {
+  questions: string[]
+}
+
 // Error types
 export class OpenAIServiceError extends Error {
   constructor(
@@ -60,10 +64,39 @@ function getOpenAIClient(): OpenAI {
 }
 
 /**
- * System prompt for the AI habit coach
+ * System prompt for asking clarifying questions
  */
-const SYSTEM_PROMPT = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
-Your role is to analyze user goals and create specific, actionable habit recommendations.
+const CLARIFYING_QUESTIONS_PROMPT = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
+Your role is to ask thoughtful clarifying questions to understand the user's context before creating habit recommendations.
+
+Based on the user's goal, generate 5-7 specific, relevant questions that will help you create a truly personalized habit plan.
+
+Questions should cover:
+- Current situation and baseline
+- Available time and schedule constraints
+- Environment and context
+- Preferences and past experiences
+- Specific obstacles or challenges
+- Motivation and desired outcomes
+
+Return your response as valid JSON matching this exact structure:
+{
+  "questions": [
+    "What does your typical daily schedule look like?",
+    "What time of day do you feel most energized?",
+    "What has prevented you from achieving this goal in the past?",
+    "How much time can you realistically dedicate to this each day?",
+    "Where will you be doing this activity? (home, gym, office, etc.)"
+  ]
+}
+
+Make questions specific to their goal, conversational, and easy to answer.`
+
+/**
+ * System prompt for generating habits with context
+ */
+const HABIT_GENERATION_PROMPT = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
+Your role is to analyze user goals and their specific context to create personalized, actionable habit recommendations.
 
 For each habit, you must provide:
 1. A clear, specific title
@@ -80,10 +113,11 @@ Generate 3-7 habits that:
 - Progress from easiest to more challenging
 - Are specific and measurable
 - Build upon each other in a logical sequence
+- Are tailored to the user's specific context and constraints
 
 Return your response as valid JSON matching this exact structure:
 {
-  "goalAnalysis": "Brief analysis of the user's goal",
+  "goalAnalysis": "Brief analysis of the user's goal and context",
   "habits": [
     {
       "title": "Habit name",
@@ -104,9 +138,9 @@ Atomic principles must be from: obvious, attractive, easy, satisfying
 Stacking order should be 1-7 based on logical sequence.`
 
 /**
- * Generates habit recommendations from a user's goal using OpenAI
+ * Generates clarifying questions based on user's goal
  */
-export async function generateHabits(goal: string): Promise<AIGeneratedHabit[]> {
+export async function generateClarifyingQuestions(goal: string): Promise<string[]> {
   if (!goal || goal.trim().length === 0) {
     throw new OpenAIServiceError('Goal cannot be empty', 'AI_ERROR')
   }
@@ -119,13 +153,108 @@ export async function generateHabits(goal: string): Promise<AIGeneratedHabit[]> 
 
   const userPrompt = `User's goal: ${goal}
 
-Generate habit recommendations in JSON format as specified in the system prompt.`
+Generate 5-7 clarifying questions to better understand their context and create a personalized habit plan.`
 
   try {
     const completion = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: CLARIFYING_QUESTIONS_PROMPT },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    })
+
+    const responseContent = completion.choices[0]?.message?.content
+
+    if (!responseContent) {
+      throw new OpenAIServiceError('No response from OpenAI', 'AI_ERROR')
+    }
+
+    let parsedResponse: OpenAIQuestionsResponse
+    try {
+      parsedResponse = JSON.parse(responseContent)
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', responseContent)
+      throw new OpenAIServiceError('Invalid JSON response from AI', 'PARSE_ERROR')
+    }
+
+    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+      throw new OpenAIServiceError('Invalid response structure from AI', 'PARSE_ERROR')
+    }
+
+    if (parsedResponse.questions.length === 0) {
+      throw new OpenAIServiceError('No questions generated', 'AI_ERROR')
+    }
+
+    return parsedResponse.questions
+
+  } catch (error: any) {
+    if (error instanceof OpenAIServiceError) {
+      throw error
+    }
+
+    if (error.status === 429) {
+      throw new OpenAIServiceError(
+        'Rate limit exceeded. Please try again in a moment.',
+        'RATE_LIMIT'
+      )
+    }
+
+    if (error.status === 401) {
+      throw new OpenAIServiceError(
+        'Invalid API key',
+        'INVALID_API_KEY'
+      )
+    }
+
+    console.error('OpenAI API error:', error)
+    throw new OpenAIServiceError(
+      error.message || 'Failed to generate questions',
+      'AI_ERROR'
+    )
+  }
+}
+
+/**
+ * Generates habit recommendations from a user's goal and context using OpenAI
+ */
+export async function generateHabits(
+  goal: string, 
+  context?: { questions: string[]; answers: string[] }
+): Promise<AIGeneratedHabit[]> {
+  if (!goal || goal.trim().length === 0) {
+    throw new OpenAIServiceError('Goal cannot be empty', 'AI_ERROR')
+  }
+
+  if (goal.length > 500) {
+    throw new OpenAIServiceError('Goal is too long (max 500 characters)', 'AI_ERROR')
+  }
+
+  const client = getOpenAIClient()
+
+  // Build context string if provided
+  let contextString = ''
+  if (context && context.questions.length > 0 && context.answers.length > 0) {
+    contextString = '\n\nUser Context:\n'
+    context.questions.forEach((q, i) => {
+      if (context.answers[i]) {
+        contextString += `Q: ${q}\nA: ${context.answers[i]}\n\n`
+      }
+    })
+  }
+
+  const userPrompt = `User's goal: ${goal}${contextString}
+
+Generate habit recommendations in JSON format as specified in the system prompt. Use the context provided to make the habits highly personalized.`
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+      messages: [
+        { role: 'system', content: HABIT_GENERATION_PROMPT },
         { role: 'user', content: userPrompt }
       ],
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),

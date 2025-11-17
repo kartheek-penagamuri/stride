@@ -4,7 +4,9 @@ import {
   UpdateHabitRequest, 
   ApiResponse,
   GenerateHabitsRequest,
-  GenerateHabitsResponse
+  GenerateHabitsResponse,
+  GenerateClarifyingQuestionsRequest,
+  GenerateClarifyingQuestionsResponse
 } from './types'
 
 const API_BASE_URL = '/api'
@@ -105,8 +107,8 @@ export const habitApi = {
 
 // AI Habit Generation API functions
 export const aiApi = {
-  // Generate habits from a user goal using AI
-  generateHabitsFromGoal: async (goal: string): Promise<ApiResponse<GenerateHabitsResponse>> => {
+  // Generate clarifying questions from a user goal
+  generateClarifyingQuestions: async (goal: string): Promise<ApiResponse<GenerateClarifyingQuestionsResponse>> => {
     if (!goal || goal.trim().length === 0) {
       return { error: 'Goal cannot be empty' }
     }
@@ -115,7 +117,31 @@ export const aiApi = {
       return { error: 'Goal must be 500 characters or less' }
     }
 
-    const request: GenerateHabitsRequest = { goal: goal.trim() }
+    const request: GenerateClarifyingQuestionsRequest = { goal: goal.trim() }
+
+    return apiRequest<GenerateClarifyingQuestionsResponse>('/ai/clarifying-questions', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  // Generate habits from a user goal using AI (with optional context)
+  generateHabitsFromGoal: async (
+    goal: string, 
+    context?: { questions: string[]; answers: string[] }
+  ): Promise<ApiResponse<GenerateHabitsResponse>> => {
+    if (!goal || goal.trim().length === 0) {
+      return { error: 'Goal cannot be empty' }
+    }
+
+    if (goal.length > 500) {
+      return { error: 'Goal must be 500 characters or less' }
+    }
+
+    const request: GenerateHabitsRequest = { 
+      goal: goal.trim(),
+      context 
+    }
 
     return apiRequest<GenerateHabitsResponse>('/ai/generate-habits', {
       method: 'POST',

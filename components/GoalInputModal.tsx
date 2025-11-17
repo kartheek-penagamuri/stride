@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GoalForm } from './GoalForm'
+import { ClarifyingQuestionsForm } from './ClarifyingQuestionsForm'
 import { LoadingState } from './LoadingState'
 import { HabitReviewCard } from './HabitReviewCard'
 import { AIGeneratedHabit, CreateHabitRequest, Habit, ErrorResponse, ErrorCode } from '@/lib/types'
-import { habitApi } from '@/lib/api'
+import { habitApi, aiApi } from '@/lib/api'
 import { 
   ERROR_MESSAGES, 
   getErrorMessage, 
@@ -20,11 +21,13 @@ interface GoalInputModalProps {
   onHabitsAdded?: (habits: Habit[]) => void
 }
 
-type ModalStep = 'input' | 'loading' | 'review' | 'error' | 'success'
+type ModalStep = 'input' | 'questions' | 'loading' | 'review' | 'error' | 'success'
 
 interface ModalState {
   step: ModalStep
   goal: string
+  clarifyingQuestions: string[]
+  answers: string[]
   generatedHabits: AIGeneratedHabit[]
   selectedHabitIds: string[]
   error: string | null
@@ -43,6 +46,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   const [state, setState] = useState<ModalState>({
     step: 'input',
     goal: '',
+    clarifyingQuestions: [],
+    answers: [],
     generatedHabits: [],
     selectedHabitIds: [],
     error: null,
@@ -58,6 +63,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       setState({
         step: 'input',
         goal: '',
+        clarifyingQuestions: [],
+        answers: [],
         generatedHabits: [],
         selectedHabitIds: [],
         error: null,
@@ -111,12 +118,83 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     }))
 
     try {
+      // First, generate clarifying questions
+      const questionsResult = await aiApi.generateClarifyingQuestions(goal)
+      
+      if (questionsResult.error || !questionsResult.data) {
+        throw new Error(questionsResult.error || 'Failed to generate questions')
+      }
+
+      const questions = questionsResult.data.questions
+
+      // Move to questions step
+      setState(prev => ({
+        ...prev,
+        step: 'questions',
+        clarifyingQuestions: questions,
+        answers: new Array(questions.length).fill(''),
+        error: null,
+        errorCode: null
+      }))
+      
+    } catch (error: any) {
+      console.error('Error generating questions:', error)
+      
+      let errorMessage: string = ERROR_MESSAGES.GENERIC
+      let errorCode: ErrorCode = ERROR_CODES.AI_ERROR
+      
+      setState(prev => ({
+        ...prev,
+        step: 'error',
+        error: errorMessage,
+        errorCode: errorCode,
+        canRetry: true
+      }))
+    }
+  }
+
+  const handleQuestionsSubmit = async (answers: string[]) => {
+    setState(prev => ({ 
+      ...prev, 
+      answers,
+      step: 'loading', 
+      error: null, 
+      errorCode: null 
+    }))
+
+    await generateHabitsWithContext(answers)
+  }
+
+  const handleSkipQuestions = async () => {
+    setState(prev => ({ 
+      ...prev, 
+      step: 'loading', 
+      error: null, 
+      errorCode: null 
+    }))
+
+    await generateHabitsWithContext([])
+  }
+
+  const generateHabitsWithContext = async (answers: string[]) => {
+    try {
+      // Build context if answers provided
+      const context = answers.length > 0 && answers.some(a => a.trim().length > 0)
+        ? {
+            questions: state.clarifyingQuestions,
+            answers: answers
+          }
+        : undefined
+
       const response = await fetch('/api/ai/generate-habits', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ goal }),
+        body: JSON.stringify({ 
+          goal: state.goal,
+          context 
+        }),
         signal: AbortSignal.timeout(35000) // 35 second timeout
       })
 
@@ -384,6 +462,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
               <div className="mb-6 animate-fade-in-up">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {state.step === 'input' && 'Start Your Journey'}
+                  {state.step === 'questions' && 'Tell Us More'}
                   {state.step === 'loading' && 'Creating Your Habits'}
                   {state.step === 'review' && 'Review Your Habits'}
                   {state.step === 'error' && 'Oops!'}
@@ -391,6 +470,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                 </h2>
                 <p className="text-sm sm:text-base text-gray-600">
                   {state.step === 'input' && 'Tell us about your goal and we\'ll create personalized habits for you'}
+                  {state.step === 'questions' && 'Help us understand your context to create truly personalized habits'}
                   {state.step === 'loading' && 'Our AI is analyzing your goal and crafting the perfect habits'}
                   {state.step === 'review' && 'Select the habits you want to add to your dashboard'}
                   {state.step === 'error' && 'Something went wrong, but don\'t worry - we can try again'}
@@ -404,6 +484,15 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                   onSubmit={handleGoalSubmit}
                   isLoading={false}
                   initialValue={state.goal}
+                />
+              )}
+
+              {state.step === 'questions' && (
+                <ClarifyingQuestionsForm
+                  questions={state.clarifyingQuestions}
+                  onSubmit={handleQuestionsSubmit}
+                  onSkip={handleSkipQuestions}
+                  isLoading={false}
                 />
               )}
 

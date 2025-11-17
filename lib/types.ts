@@ -86,11 +86,23 @@ export interface AIGeneratedHabit {
 // API Request/Response types for AI habit generation
 export interface GenerateHabitsRequest {
   goal: string
+  context?: {
+    questions: string[]
+    answers: string[]
+  }
 }
 
 export interface GenerateHabitsResponse {
   habits: AIGeneratedHabit[]
   goalAnalysis?: string
+}
+
+export interface GenerateClarifyingQuestionsRequest {
+  goal: string
+}
+
+export interface GenerateClarifyingQuestionsResponse {
+  questions: string[]
 }
 
 // OpenAI Response Schema
