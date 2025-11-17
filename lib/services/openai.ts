@@ -64,9 +64,9 @@ function getOpenAIClient(): OpenAI {
 }
 
 /**
- * System prompt for asking clarifying questions
+ * Instructions for asking clarifying questions
  */
-const CLARIFYING_QUESTIONS_PROMPT = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
+const CLARIFYING_QUESTIONS_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
 Your role is to ask thoughtful clarifying questions to understand the user's context before creating habit recommendations.
 
 Based on the user's goal, generate 5-7 specific, relevant questions that will help you create a truly personalized habit plan.
@@ -79,7 +79,9 @@ Questions should cover:
 - Specific obstacles or challenges
 - Motivation and desired outcomes
 
-Return your response as valid JSON matching this exact structure:
+CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
+
+Return ONLY this JSON structure with no additional text:
 {
   "questions": [
     "What does your typical daily schedule look like?",
@@ -93,9 +95,9 @@ Return your response as valid JSON matching this exact structure:
 Make questions specific to their goal, conversational, and easy to answer.`
 
 /**
- * System prompt for generating habits with context
+ * Instructions for generating habits with context
  */
-const HABIT_GENERATION_PROMPT = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
+const HABIT_GENERATION_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
 Your role is to analyze user goals and their specific context to create personalized, actionable habit recommendations.
 
 For each habit, you must provide:
@@ -115,7 +117,9 @@ Generate 3-7 habits that:
 - Build upon each other in a logical sequence
 - Are tailored to the user's specific context and constraints
 
-Return your response as valid JSON matching this exact structure:
+CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
+
+Return ONLY this JSON structure with no additional text:
 {
   "goalAnalysis": "Brief analysis of the user's goal and context",
   "habits": [
@@ -151,23 +155,20 @@ export async function generateClarifyingQuestions(goal: string): Promise<string[
 
   const client = getOpenAIClient()
 
-  const userPrompt = `User's goal: ${goal}
+  const userInput = `User's goal: ${goal}
 
 Generate 5-7 clarifying questions to better understand their context and create a personalized habit plan.`
 
   try {
-    const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
-      messages: [
-        { role: 'system', content: CLARIFYING_QUESTIONS_PROMPT },
-        { role: 'user', content: userPrompt }
-      ],
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      instructions: CLARIFYING_QUESTIONS_INSTRUCTIONS,
+      input: userInput,
       temperature: 0.7,
-      max_tokens: 1000,
-      response_format: { type: 'json_object' }
+      max_output_tokens: 1000
     })
 
-    const responseContent = completion.choices[0]?.message?.content
+    const responseContent = response.output_text
 
     if (!responseContent) {
       throw new OpenAIServiceError('No response from OpenAI', 'AI_ERROR')
@@ -175,9 +176,18 @@ Generate 5-7 clarifying questions to better understand their context and create 
 
     let parsedResponse: OpenAIQuestionsResponse
     try {
-      parsedResponse = JSON.parse(responseContent)
+      // Try to extract JSON if wrapped in markdown code blocks
+      let jsonContent = responseContent.trim()
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      parsedResponse = JSON.parse(jsonContent)
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', responseContent)
+      console.error('Parse error:', parseError)
       throw new OpenAIServiceError('Invalid JSON response from AI', 'PARSE_ERROR')
     }
 
@@ -246,23 +256,20 @@ export async function generateHabits(
     })
   }
 
-  const userPrompt = `User's goal: ${goal}${contextString}
+  const userInput = `User's goal: ${goal}${contextString}
 
-Generate habit recommendations in JSON format as specified in the system prompt. Use the context provided to make the habits highly personalized.`
+Generate habit recommendations in JSON format as specified in the instructions. Use the context provided to make the habits highly personalized.`
 
   try {
-    const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
-      messages: [
-        { role: 'system', content: HABIT_GENERATION_PROMPT },
-        { role: 'user', content: userPrompt }
-      ],
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      instructions: HABIT_GENERATION_INSTRUCTIONS,
+      input: userInput,
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
-      response_format: { type: 'json_object' }
+      max_output_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000')
     })
 
-    const responseContent = completion.choices[0]?.message?.content
+    const responseContent = response.output_text
 
     if (!responseContent) {
       throw new OpenAIServiceError('No response from OpenAI', 'AI_ERROR')
@@ -271,9 +278,18 @@ Generate habit recommendations in JSON format as specified in the system prompt.
     // Parse the JSON response
     let parsedResponse: OpenAIHabitResponse
     try {
-      parsedResponse = JSON.parse(responseContent)
+      // Try to extract JSON if wrapped in markdown code blocks
+      let jsonContent = responseContent.trim()
+      if (jsonContent.startsWith('```json')) {
+        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonContent.startsWith('```')) {
+        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      parsedResponse = JSON.parse(jsonContent)
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', responseContent)
+      console.error('Parse error:', parseError)
       throw new OpenAIServiceError('Invalid JSON response from AI', 'PARSE_ERROR')
     }
 
