@@ -26,6 +26,7 @@ export async function POST(
       habit: updatedHabit 
     })
   } catch (error) {
+    console.error('Failed to complete habit:', error)
     return NextResponse.json(
       { error: 'Failed to complete habit' },
       { status: 500 }

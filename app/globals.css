@@ -6,6 +6,15 @@
   html {
     scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-[#f6f5ff] text-slate-900 antialiased;
+  }
+
+  ::selection {
+    background-color: rgba(129, 140, 248, 0.25);
+    color: #0f172a;
+  }
 }
 
 @layer utilities {
@@ -21,17 +30,28 @@
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
 
+  .soft-card {
+    @apply rounded-[28px] border border-white/70 bg-white/80 backdrop-blur-lg shadow-[0_22px_65px_rgba(15,23,42,0.08)];
+  }
+
+  .hero-surface {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.18), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.15), transparent 40%),
+      radial-gradient(circle at 60% 60%, rgba(236, 72, 153, 0.15), transparent 45%);
+  }
+
   /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded-full;
+    @apply bg-slate-100 rounded-full;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-indigo-300 rounded-full hover:bg-indigo-400;
+    @apply bg-slate-300 rounded-full hover:bg-slate-400;
   }
 
   /* Animation utilities */

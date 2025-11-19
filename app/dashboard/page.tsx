@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useHabits } from '@/hooks/useHabits'
-import { Plus, Check, Trash2, Edit } from 'lucide-react'
+import { Plus, Check, Trash2 } from 'lucide-react'
 import { CreateHabitRequest } from '@/lib/types'
 
 export default function Dashboard() {

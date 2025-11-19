@@ -1,16 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { GoalForm } from './GoalForm'
 import { ClarifyingQuestionsForm } from './ClarifyingQuestionsForm'
 import { LoadingState } from './LoadingState'
 import { HabitReviewCard } from './HabitReviewCard'
-import { AIGeneratedHabit, CreateHabitRequest, Habit, ErrorResponse, ErrorCode } from '@/lib/types'
+import { AIGeneratedHabit, CreateHabitRequest, Habit, ErrorResponse, ErrorCode, GenerateHabitsResponse } from '@/lib/types'
 import { habitApi, aiApi } from '@/lib/api'
 import { 
   ERROR_MESSAGES, 
-  getErrorMessage, 
   isRetryableError,
   ERROR_CODES 
 } from '@/lib/constants'
@@ -36,6 +35,52 @@ interface ModalState {
   isSubmitting: boolean
   savedHabitsCount: number
   canRetry: boolean
+}
+
+type TimelineStage = 'input' | 'questions' | 'review'
+
+const STAGE_ORDER: TimelineStage[] = ['input', 'questions', 'review']
+
+const TIMELINE_STEPS: Array<{ id: TimelineStage; title: string; description: string; optional?: boolean }> = [
+  { id: 'input', title: 'Define focus', description: 'Share the change you want to see.' },
+  { id: 'questions', title: 'Add context', description: 'Answer optional prompts for nuance.', optional: true },
+  { id: 'review', title: 'Curate stack', description: 'Approve the rituals that resonate.' }
+]
+
+const isGenerateHabitsResponse = (payload: unknown): payload is GenerateHabitsResponse => {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const maybeResponse = payload as Partial<GenerateHabitsResponse>
+  return Array.isArray(maybeResponse.habits) && typeof maybeResponse.goalAnalysis === 'string'
+}
+
+const STEP_COPY: Record<ModalStep, { title: string; description: string }> = {
+  input: {
+    title: 'Design your intention',
+    description: 'Tell us what you want to change and why it matters.'
+  },
+  questions: {
+    title: 'Add nuance',
+    description: 'These prompts sharpen the plan. Answer what feels useful.'
+  },
+  loading: {
+    title: 'Composing your stack',
+    description: 'Our AI is translating your goal into cue, action, reward.'
+  },
+  review: {
+    title: 'Review your habits',
+    description: 'Select the rituals that belong on your dashboard.'
+  },
+  error: {
+    title: 'Let’s adjust',
+    description: 'Something interrupted the flow. Your input is still safe.'
+  },
+  success: {
+    title: 'Habits added',
+    description: 'We saved them to your dashboard and will redirect shortly.'
+  }
 }
 
 export const GoalInputModal: React.FC<GoalInputModalProps> = ({
@@ -92,6 +137,12 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     }
   }, [isOpen])
 
+  const handleClose = useCallback(() => {
+    if (state.step !== 'loading' && state.step !== 'success' && !state.isSubmitting) {
+      onClose()
+    }
+  }, [onClose, state.isSubmitting, state.step])
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -102,13 +153,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, state.step])
-
-  const handleClose = () => {
-    if (state.step !== 'loading' && state.step !== 'success' && !state.isSubmitting) {
-      onClose()
-    }
-  }
+  }, [handleClose, isOpen, state.step])
 
   const handleGoalSubmit = async (goal: string) => {
     setState(prev => ({ 
@@ -141,11 +186,11 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         errorCode: null
       }))
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating questions:', error)
       
-      let errorMessage: string = ERROR_MESSAGES.GENERIC
-      let errorCode: ErrorCode = ERROR_CODES.AI_ERROR
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC
+      const errorCode: ErrorCode = ERROR_CODES.AI_ERROR
       
       setState(prev => ({
         ...prev,
@@ -204,7 +249,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         signal: AbortSignal.timeout(35000) // 35 second timeout
       })
 
-      let data: any
+      let data: GenerateHabitsResponse | ErrorResponse
       try {
         data = await response.json()
       } catch (parseError) {
@@ -250,8 +295,19 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         return
       }
 
+      if (!isGenerateHabitsResponse(data)) {
+        setState(prev => ({
+          ...prev,
+          step: 'error',
+          error: ERROR_MESSAGES.INVALID_RESPONSE,
+          errorCode: ERROR_CODES.PARSE_ERROR,
+          canRetry: true
+        }))
+        return
+      }
+
       // Successfully generated habits
-      const habits = data.habits || []
+      const habits = data.habits ?? []
       
       if (habits.length === 0) {
         setState(prev => ({
@@ -265,8 +321,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       }
 
       // Validate habit structure
-      const validHabits = habits.filter((h: any) => 
-        h.id && h.title && h.cue && h.action && h.reward
+      const validHabits = habits.filter((habit) => 
+        Boolean(habit.id && habit.title && habit.cue && habit.action && habit.reward)
       )
 
       if (validHabits.length === 0) {
@@ -292,17 +348,17 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         error: null,
         errorCode: null
       }))
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating habits:', error)
       
       let errorMessage: string = ERROR_MESSAGES.GENERIC
       let errorCode: ErrorCode = ERROR_CODES.NETWORK_ERROR
       
       // Handle specific error types
-      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
         errorMessage = ERROR_MESSAGES.TIMEOUT
         errorCode = ERROR_CODES.TIMEOUT
-      } else if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      } else if (error instanceof Error && (error.message?.includes('fetch') || error.message?.includes('network'))) {
         errorMessage = ERROR_MESSAGES.CONNECTION_ERROR
         errorCode = ERROR_CODES.NETWORK_ERROR
       }
@@ -387,16 +443,16 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         router.push('/dashboard')
       }, 1500)
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving habits:', error)
       
       let errorMessage: string = ERROR_MESSAGES.SAVE_FAILED
       let errorCode: ErrorCode = ERROR_CODES.SERVER_ERROR
       
-      if (error.message?.includes('timeout')) {
+      if (error instanceof Error && error.message?.includes('timeout')) {
         errorMessage = ERROR_MESSAGES.TIMEOUT
         errorCode = ERROR_CODES.TIMEOUT
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      } else if (error instanceof Error && (error.message?.includes('network') || error.message?.includes('fetch'))) {
         errorMessage = ERROR_MESSAGES.CONNECTION_ERROR
         errorCode = ERROR_CODES.NETWORK_ERROR
       }
@@ -422,335 +478,266 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     }))
   }
 
+  const getActiveStage = (): TimelineStage => {
+    if (state.step === 'review' || state.step === 'success') return 'review'
+    if (state.step === 'questions') return 'questions'
+    if (state.step === 'loading') {
+      if (state.generatedHabits.length > 0 || state.selectedHabitIds.length > 0) {
+        return 'review'
+      }
+      if (state.clarifyingQuestions.length > 0) {
+        return 'questions'
+      }
+      return 'input'
+    }
+    if (state.step === 'error') {
+      if (state.generatedHabits.length > 0 || state.selectedHabitIds.length > 0) {
+        return 'review'
+      }
+      if (state.clarifyingQuestions.length > 0) {
+        return 'questions'
+      }
+    }
+    return 'input'
+  }
+
+
   if (!isOpen) return null
+
+  const activeStage = getActiveStage()
+  const stageIndex = STAGE_ORDER.indexOf(activeStage)
+  const currentCopy = STEP_COPY[state.step]
+
+  const renderTimeline = (variant: 'dark' | 'light') => {
+    const titleClass = variant === 'dark' ? 'text-white' : 'text-slate-900'
+    const descriptionClass = variant === 'dark' ? 'text-white/70' : 'text-slate-500'
+    const optionalClass = variant === 'dark' ? 'text-white/50' : 'text-slate-400'
+    const circleBase = variant === 'dark' ? 'border-white/40 text-white/60' : 'border-slate-200 text-slate-400'
+    const circleComplete = variant === 'dark' ? 'bg-white/20 text-white border-white/20' : 'bg-slate-100 text-slate-600 border-slate-100'
+    const circleActive = variant === 'dark' ? 'bg-white text-slate-900 border-white' : 'bg-slate-900 text-white border-slate-900'
+
+    return (
+      <ol className="space-y-5">
+        {TIMELINE_STEPS.map((step, index) => {
+          const stepIndex = STAGE_ORDER.indexOf(step.id)
+          const isCurrent = step.id === activeStage
+          const isComplete = stepIndex < stageIndex || (state.step === 'success' && step.id === 'review')
+
+          return (
+            <li key={step.id} className="flex items-start gap-3">
+              <div
+                className={`w-8 h-8 rounded-full border text-xs font-semibold flex items-center justify-center ${
+                  isCurrent ? circleActive : isComplete ? circleComplete : circleBase
+                }`}
+              >
+                {index + 1}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm font-semibold ${titleClass}`}>{step.title}</p>
+                  {step.optional && (
+                    <span className={`text-[10px] uppercase tracking-[0.4em] ${optionalClass}`}>Optional</span>
+                  )}
+                </div>
+                <p className={`text-xs ${descriptionClass}`}>{step.description}</p>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    )
+  }
 
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ease-out animate-fade-in"
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 animate-fade-in"
         onClick={handleClose}
         aria-hidden="true"
       />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10">
+        <div
+          className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/40 bg-white/95 shadow-[0_40px_100px_rgba(15,23,42,0.25)] grid lg:grid-cols-[260px,1fr]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <aside className="hidden lg:flex flex-col gap-8 bg-slate-900 text-white p-8">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.5em] text-white/60">Atomic Habits</p>
+              <p className="text-xl font-semibold">Habit Composer</p>
+              <p className="text-sm text-white/70">Three quiet beats from intention to action.</p>
+            </div>
+            {renderTimeline('dark')}
+            <div className="mt-auto space-y-1 text-sm text-white/70">
+              <p>Need a breather? You can close this flow and return without losing your goal.</p>
+            </div>
+          </aside>
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4 sm:p-6 md:p-8">
-          <div 
-            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ease-out animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
+          <div className="relative bg-white">
             {state.step !== 'loading' && state.step !== 'success' && (
               <button
                 onClick={handleClose}
                 disabled={state.isSubmitting}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-all duration-200 hover:scale-110 active:scale-95 z-10 p-1 rounded-lg hover:bg-gray-100"
+                className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label="Close modal"
               >
-                <svg 
-                  className="w-6 h-6" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M6 18L18 6M6 6l12 12" 
-                  />
+                <svg className="w-6 h-6" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}
 
-            {/* Modal Content */}
-            <div className="p-6 sm:p-8">
-              {/* Header */}
-              <div className="mb-6 animate-fade-in-up">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                  {state.step === 'input' && 'Start Your Journey'}
-                  {state.step === 'questions' && 'Tell Us More'}
-                  {state.step === 'loading' && 'Creating Your Habits'}
-                  {state.step === 'review' && 'Review Your Habits'}
-                  {state.step === 'error' && 'Oops!'}
-                  {state.step === 'success' && 'Success!'}
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600">
-                  {state.step === 'input' && 'Tell us about your goal and we\'ll create personalized habits for you'}
-                  {state.step === 'questions' && 'Help us understand your context to create truly personalized habits'}
-                  {state.step === 'loading' && 'Our AI is analyzing your goal and crafting the perfect habits'}
-                  {state.step === 'review' && 'Select the habits you want to add to your dashboard'}
-                  {state.step === 'error' && 'Something went wrong, but don\'t worry - we can try again'}
-                  {state.step === 'success' && 'Your habits have been added to your dashboard'}
-                </p>
+            <div className="lg:hidden border-b border-slate-100 p-6">{renderTimeline('light')}</div>
+
+            <div className="max-h-[80vh] overflow-y-auto p-6 sm:p-10 custom-scrollbar">
+              <div className="space-y-3 pb-6 border-b border-slate-100">
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Step</p>
+                <h2 className="text-2xl font-semibold text-slate-900">{currentCopy.title}</h2>
+                <p className="text-sm text-slate-500 max-w-2xl">{currentCopy.description}</p>
               </div>
 
-              {/* Step Content */}
-              {state.step === 'input' && (
-                <GoalForm
-                  onSubmit={handleGoalSubmit}
-                  isLoading={false}
-                  initialValue={state.goal}
-                />
-              )}
+              <div className="pt-6 space-y-8">
+                {state.step === 'input' && (
+                  <GoalForm onSubmit={handleGoalSubmit} isLoading={false} initialValue={state.goal} />
+                )}
 
-              {state.step === 'questions' && (
-                <ClarifyingQuestionsForm
-                  questions={state.clarifyingQuestions}
-                  onSubmit={handleQuestionsSubmit}
-                  onSkip={handleSkipQuestions}
-                  isLoading={false}
-                />
-              )}
+                {state.step === 'questions' && (
+                  <ClarifyingQuestionsForm
+                    questions={state.clarifyingQuestions}
+                    onSubmit={handleQuestionsSubmit}
+                    onSkip={handleSkipQuestions}
+                    isLoading={false}
+                  />
+                )}
 
-              {state.step === 'loading' && (
-                <LoadingState showTimeoutWarning={true} />
-              )}
+                {state.step === 'loading' && <LoadingState showTimeoutWarning={true} />}
 
-              {state.step === 'review' && (
-                <div className="space-y-6 animate-fade-in-up">
-                  {/* Goal Analysis */}
-                  {state.goalAnalysis && state.goalAnalysis.trim().length > 0 && (
-                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
-                      <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide mb-2">
-                        Personalized Overview
-                      </h3>
-                      <div className="space-y-2 text-sm text-gray-700">
-                        {state.goalAnalysis
-                          .split(/\n+/)
-                          .map((paragraph) => paragraph.trim())
-                          .filter((paragraph) => paragraph.length > 0)
-                          .map((paragraph, index) => (
-                            <p key={index}>{paragraph}</p>
-                          ))}
+                {state.step === 'review' && (
+                  <div className="space-y-6">
+                    {state.goalAnalysis && state.goalAnalysis.trim().length > 0 && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 space-y-2">
+                        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Personalized overview</p>
+                        <div className="space-y-2 text-sm text-slate-600">
+                          {state.goalAnalysis
+                            .split(/\n+/)
+                            .map((paragraph) => paragraph.trim())
+                            .filter((paragraph) => paragraph.length > 0)
+                            .map((paragraph, index) => (
+                              <p key={index}>{paragraph}</p>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Habits List */}
-                  <div className="space-y-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    {state.generatedHabits.map((habit, index) => (
-                      <div 
-                        key={habit.id}
-                        className="animate-slide-in-up"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
+                    <div className="space-y-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                      {state.generatedHabits.map((habit) => (
                         <HabitReviewCard
+                          key={habit.id}
                           habit={habit}
                           isSelected={state.selectedHabitIds.includes(habit.id)}
                           onToggle={handleHabitToggle}
                         />
+                      ))}
+                    </div>
+
+                    {state.error && (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
+                        {state.error}
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Error Message */}
-                  {state.error && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl animate-shake">
-                      <div className="flex items-center">
-                        <svg 
-                          className="w-5 h-5 text-red-600 mr-2 flex-shrink-0" 
-                          fill="currentColor" 
-                          viewBox="0 0 20 20"
-                        >
-                          <path 
-                            fillRule="evenodd" 
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
-                            clipRule="evenodd" 
-                          />
-                        </svg>
-                        <p className="text-sm text-red-800">{state.error}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleClose}
-                      disabled={state.isSubmitting}
-                      className="flex-1 py-3 px-6 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddHabits}
-                      disabled={state.isSubmitting || state.selectedHabitIds.length === 0}
-                      className="flex-1 py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      {state.isSubmitting ? (
-                        <span className="flex items-center justify-center">
-                          <svg 
-                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            fill="none" 
-                            viewBox="0 0 24 24"
-                          >
-                            <circle 
-                              className="opacity-25" 
-                              cx="12" 
-                              cy="12" 
-                              r="10" 
-                              stroke="currentColor" 
-                              strokeWidth="4"
-                            />
-                            <path 
-                              className="opacity-75" 
-                              fill="currentColor" 
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          Saving...
-                        </span>
-                      ) : (
-                        `Add ${state.selectedHabitIds.length} Habit${state.selectedHabitIds.length !== 1 ? 's' : ''}`
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {state.step === 'error' && (
-                <div className="space-y-6 animate-fade-in-up">
-                  {/* Error Display */}
-                  <div className="p-6 bg-red-50 border border-red-200 rounded-xl animate-shake">
-                    <div className="flex items-start">
-                      <svg 
-                        className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" 
-                        fill="currentColor" 
-                        viewBox="0 0 20 20"
-                      >
-                        <path 
-                          fillRule="evenodd" 
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
-                          clipRule="evenodd" 
-                        />
-                      </svg>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-red-900 mb-1">
-                          {state.errorCode === ERROR_CODES.RATE_LIMIT ? 'Rate Limit Reached' : 
-                           state.errorCode === ERROR_CODES.TIMEOUT ? 'Request Timed Out' :
-                           state.errorCode === ERROR_CODES.NETWORK_ERROR ? 'Connection Issue' :
-                           state.errorCode === ERROR_CODES.INVALID_INPUT ? 'Invalid Input' :
-                           'Error'}
-                        </h3>
-                        <p className="text-sm text-red-800">
-                          {state.error || ERROR_MESSAGES.GENERIC}
-                        </p>
-                        {state.errorCode && (
-                          <p className="text-xs text-red-600 mt-2 font-mono">
-                            Error Code: {state.errorCode}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Help Text for Specific Errors */}
-                  {state.errorCode === ERROR_CODES.RATE_LIMIT && (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                      <p className="text-sm text-yellow-800">
-                        💡 <strong>Tip:</strong> Please wait a minute before trying again. This helps us maintain service quality for everyone.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {state.errorCode === ERROR_CODES.NETWORK_ERROR && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                      <p className="text-sm text-blue-800">
-                        💡 <strong>Tip:</strong> Check your internet connection and try again. Your goal text has been saved.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleClose}
-                      className="flex-1 py-3 px-6 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 hover:scale-105 active:scale-95"
-                    >
-                      Cancel
-                    </button>
-                    {state.canRetry && (
-                      <button
-                        onClick={handleRetry}
-                        className="flex-1 py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg"
-                      >
-                        <span className="flex items-center justify-center">
-                          <svg 
-                            className="w-5 h-5 mr-2" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              strokeWidth={2} 
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
-                            />
-                          </svg>
-                          Try Again
-                        </span>
-                      </button>
                     )}
-                  </div>
-                </div>
-              )}
 
-              {state.step === 'success' && (
-                <div className="space-y-6 animate-fade-in-up">
-                  {/* Success Display */}
-                  <div className="p-6 bg-green-50 border border-green-200 rounded-xl animate-bounce-in">
-                    <div className="flex items-start">
-                      <svg 
-                        className="w-6 h-6 text-green-600 mr-3 flex-shrink-0 mt-0.5" 
-                        fill="currentColor" 
-                        viewBox="0 0 20 20"
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <button
+                        onClick={handleClose}
+                        disabled={state.isSubmitting}
+                        className="flex-1 rounded-[18px] border border-slate-300 px-6 py-4 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors disabled:cursor-not-allowed"
                       >
-                        <path 
-                          fillRule="evenodd" 
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
-                          clipRule="evenodd" 
-                        />
-                      </svg>
-                      <div>
-                        <h3 className="text-lg font-semibold text-green-900 mb-1">
-                          Habits Added Successfully!
-                        </h3>
-                        <p className="text-sm text-green-800">
-                          {state.savedHabitsCount} habit{state.savedHabitsCount !== 1 ? 's have' : ' has'} been added to your dashboard. Redirecting you now...
-                        </p>
-                      </div>
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAddHabits}
+                        disabled={state.isSubmitting || state.selectedHabitIds.length === 0}
+                        className={`flex-1 rounded-[18px] px-6 py-4 text-sm font-semibold text-white transition-colors ${
+                          state.isSubmitting || state.selectedHabitIds.length === 0
+                            ? 'bg-slate-400 cursor-not-allowed'
+                            : 'bg-slate-900 hover:bg-slate-800'
+                        }`}
+                      >
+                        {state.isSubmitting ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                            Saving
+                          </span>
+                        ) : (
+                          `Add ${state.selectedHabitIds.length} habit${state.selectedHabitIds.length !== 1 ? 's' : ''}`
+                        )}
+                      </button>
                     </div>
                   </div>
+                )}
 
-                  {/* Loading indicator */}
-                  <div className="flex justify-center">
-                    <svg 
-                      className="animate-spin h-8 w-8 text-indigo-600" 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      fill="none" 
-                      viewBox="0 0 24 24"
-                    >
-                      <circle 
-                        className="opacity-25" 
-                        cx="12" 
-                        cy="12" 
-                        r="10" 
-                        stroke="currentColor" 
-                        strokeWidth="4"
-                      />
-                      <path 
-                        className="opacity-75" 
-                        fill="currentColor" 
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
+                {state.step === 'error' && (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-6 space-y-2">
+                      <p className="text-lg font-semibold text-rose-900">
+                        {state.errorCode === ERROR_CODES.RATE_LIMIT
+                          ? 'Too many requests'
+                          : state.errorCode === ERROR_CODES.NETWORK_ERROR
+                          ? 'Connection interrupted'
+                          : state.errorCode === ERROR_CODES.INVALID_INPUT
+                          ? 'Invalid input'
+                          : 'Something went wrong'}
+                      </p>
+                      <p className="text-sm text-rose-700">{state.error || ERROR_MESSAGES.GENERIC}</p>
+                      {state.errorCode && (
+                        <p className="text-xs text-rose-600 uppercase tracking-[0.4em]">Code: {state.errorCode}</p>
+                      )}
+                    </div>
+
+                    {state.errorCode === ERROR_CODES.RATE_LIMIT && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-800">
+                        Tip: pause for a minute before trying again so we can keep the experience smooth for everyone.
+                      </div>
+                    )}
+
+                    {state.errorCode === ERROR_CODES.NETWORK_ERROR && (
+                      <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-800">
+                        Tip: check your connection and retry whenever you&rsquo;re ready. Your goal text is still here.
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <button
+                        onClick={handleClose}
+                        className="flex-1 rounded-[18px] border border-slate-300 px-6 py-4 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors"
+                      >
+                        Close
+                      </button>
+                      {state.canRetry && (
+                        <button
+                          onClick={handleRetry}
+                          className="flex-1 rounded-[18px] bg-slate-900 px-6 py-4 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+                        >
+                          Try again
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {state.step === 'success' && (
+                  <div className="space-y-6 text-center">
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 space-y-2">
+                      <p className="text-lg font-semibold text-emerald-900">Habits added successfully</p>
+                      <p className="text-sm text-emerald-800">
+                        {state.savedHabitsCount} habit{state.savedHabitsCount !== 1 ? 's have' : ' has'} been saved to your dashboard. Opening it now.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <span className="h-10 w-10 rounded-full border-2 border-emerald-300 border-t-emerald-600 animate-spin" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -758,3 +745,4 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     </>
   )
 }
+

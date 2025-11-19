@@ -31,6 +31,7 @@ export async function GET(
 
     return NextResponse.json({ habit })
   } catch (error) {
+    console.error('Failed to fetch habit:', error)
     return NextResponse.json(
       { error: 'Failed to fetch habit' },
       { status: 500 }
@@ -59,6 +60,7 @@ export async function PUT(
 
     return NextResponse.json({ habit: updatedHabit })
   } catch (error) {
+    console.error('Failed to update habit:', error)
     return NextResponse.json(
       { error: 'Failed to update habit' },
       { status: 500 }
@@ -68,17 +70,17 @@ export async function PUT(
 
 // DELETE /api/habits/[id] - Delete a habit
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id
-
+    const { id } = params
     // This is where you'd typically delete from a database
     // await deleteHabitFromDatabase(id)
 
-    return NextResponse.json({ message: 'Habit deleted successfully' })
+    return NextResponse.json({ message: `Habit ${id} deleted successfully` })
   } catch (error) {
+    console.error('Failed to delete habit:', error)
     return NextResponse.json(
       { error: 'Failed to delete habit' },
       { status: 500 }

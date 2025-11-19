@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, ChangeEvent, FormEvent } from 'react'
+import React, { useState, FormEvent } from 'react'
 
 interface ClarifyingQuestionsFormProps {
   questions: string[]
@@ -51,40 +51,35 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h3 className="text-xl font-semibold text-gray-800">
-          Let's personalize your plan
-        </h3>
-        <p className="text-sm text-gray-600">
-          Answer a few questions to help us create habits that truly fit your lifestyle. 
-          You can skip any question or skip all to get general recommendations.
+      <div className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Context</p>
+        <h3 className="text-2xl font-semibold text-slate-900">Tell us more about your environment.</h3>
+        <p className="text-sm text-slate-500">
+          These prompts are optional. Share what feels helpful and skip the rest.
         </p>
       </div>
 
-      {/* Progress Bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-gray-600">
+        <div className="flex justify-between text-xs text-slate-500">
           <span>Progress</span>
-          <span>{answeredCount} of {questions.length} answered</span>
+          <span>
+            {answeredCount} of {questions.length} answered
+          </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
+        <div className="h-1.5 rounded-full bg-slate-200">
+          <div
+            className="h-full rounded-full bg-slate-900 transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
       </div>
 
-      {/* Questions Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {questions.map((question, index) => (
-          <div key={index} className="space-y-2">
-            <label 
-              htmlFor={`question-${index}`} 
-              className="block text-sm font-medium text-gray-700"
-            >
-              <span className="text-indigo-600 font-semibold">{index + 1}.</span> {question}
+          <div key={index} className="space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
+            <label htmlFor={`question-${index}`} className="block text-sm font-semibold text-slate-700">
+              <span className="text-slate-400 mr-2">{index + 1}.</span>
+              {question}
             </label>
             <textarea
               id={`question-${index}`}
@@ -92,87 +87,57 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
               onChange={(e) => handleChange(index, e.target.value)}
               disabled={isLoading}
               placeholder="Your answer (optional)..."
-              className={`w-full px-4 py-2 rounded-lg border ${
-                errors[index] ? 'border-red-500' : 'border-gray-300'
-              } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-all duration-200 ${
-                isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-indigo-300'
-              }`}
+              className={`w-full rounded-2xl border ${
+                errors[index] ? 'border-rose-400' : 'border-transparent'
+              } bg-slate-50/60 px-4 py-3 text-sm text-slate-700 focus:border-slate-900/40 focus:outline-none focus:ring-0 disabled:cursor-not-allowed`}
               rows={2}
             />
           </div>
         ))}
 
-        {/* Error Message */}
-        {errors.some(e => e) && (
-          <div className="text-sm text-red-600 flex items-center animate-fade-in">
-            <svg 
-              className="w-4 h-4 mr-1 flex-shrink-0" 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
-                clipRule="evenodd" 
+        {errors.some((e) => e) && (
+          <div className="flex items-center gap-2 text-sm text-rose-600">
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
               />
             </svg>
-            Please answer at least one question or skip to continue
+            Please answer at least one question or skip to continue.
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <button
             type="button"
             onClick={onSkip}
             disabled={isLoading}
-            className="flex-1 py-3 px-6 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-[18px] border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors disabled:cursor-not-allowed flex-1"
           >
-            Skip All
+            Skip all
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 ${
-              isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transform hover:scale-105 active:scale-95'
+            className={`rounded-[18px] px-6 py-3 text-sm font-semibold text-white transition-colors flex-1 ${
+              isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'
             }`}
           >
             {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg 
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                  />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Generating...
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                Generating
               </span>
             ) : (
-              'Generate My Habits'
+              'Generate my habits'
             )}
           </button>
         </div>
       </form>
 
-      {/* Helper Text */}
-      <p className="text-xs text-gray-500 text-center">
-        The more details you provide, the more personalized your habit plan will be.
+      <p className="text-xs text-center text-slate-500">
+        The more context you include, the more the plan fits into your life.
       </p>
     </div>
   )

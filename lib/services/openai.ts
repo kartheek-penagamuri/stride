@@ -35,6 +35,16 @@ export class OpenAIServiceError extends Error {
 // OpenAI client singleton
 let openaiClient: OpenAI | null = null
 
+type OpenAIAPIErrorLike = {
+  status?: number
+  code?: string | number
+  message?: string
+}
+
+function isOpenAIAPIErrorLike(error: unknown): error is OpenAIAPIErrorLike {
+  return typeof error === 'object' && error !== null
+}
+
 /**
  * Validates that the OpenAI API key is configured
  */
@@ -244,19 +254,19 @@ Identify only the most essential clarifying questions needed to create a persona
 
     return parsedResponse.questions
 
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof OpenAIServiceError) {
       throw error
     }
 
-    if (error.status === 429) {
+    if (isOpenAIAPIErrorLike(error) && error.status === 429) {
       throw new OpenAIServiceError(
         'Rate limit exceeded. Please try again in a moment.',
         'RATE_LIMIT'
       )
     }
 
-    if (error.status === 401) {
+    if (isOpenAIAPIErrorLike(error) && error.status === 401) {
       throw new OpenAIServiceError(
         'Invalid API key',
         'INVALID_API_KEY'
@@ -265,7 +275,7 @@ Identify only the most essential clarifying questions needed to create a persona
 
     console.error('OpenAI API error:', error)
     throw new OpenAIServiceError(
-      error.message || 'Failed to generate questions',
+      error instanceof Error ? error.message : 'Failed to generate questions',
       'AI_ERROR'
     )
   }
@@ -380,34 +390,34 @@ Summarize the goal and context in no more than two short paragraphs and generate
       habits
     }
 
-  } catch (error: any) {
+  } catch (error) {
     // Handle specific OpenAI errors
     if (error instanceof OpenAIServiceError) {
       throw error
     }
 
-    if (error.status === 429) {
+    if (isOpenAIAPIErrorLike(error) && error.status === 429) {
       throw new OpenAIServiceError(
         'Rate limit exceeded. Please try again in a moment.',
         'RATE_LIMIT'
       )
     }
 
-    if (error.status === 401) {
+    if (isOpenAIAPIErrorLike(error) && error.status === 401) {
       throw new OpenAIServiceError(
         'Invalid API key',
         'INVALID_API_KEY'
       )
     }
 
-    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    if (isOpenAIAPIErrorLike(error) && (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT')) {
       throw new OpenAIServiceError(
         'Request timed out. Please try again.',
         'TIMEOUT'
       )
     }
 
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+    if (isOpenAIAPIErrorLike(error) && (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')) {
       throw new OpenAIServiceError(
         'Network error. Please check your connection.',
         'NETWORK_ERROR'
@@ -417,7 +427,7 @@ Summarize the goal and context in no more than two short paragraphs and generate
     // Generic error
     console.error('OpenAI API error:', error)
     throw new OpenAIServiceError(
-      error.message || 'Failed to generate habits',
+      error instanceof Error ? error.message : 'Failed to generate habits',
       'AI_ERROR'
     )
   }

@@ -61,58 +61,56 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   }
 
   const getCharacterCountColor = () => {
-    if (isOverLimit) return 'text-red-500'
-    if (characterCount > MAX_CHARACTERS * 0.9) return 'text-yellow-500'
-    return 'text-gray-400'
+    if (isOverLimit) return 'text-rose-500'
+    if (characterCount > MAX_CHARACTERS * 0.9) return 'text-amber-500'
+    return 'text-slate-400'
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in-up">
-      <div>
-        <label htmlFor="goal-input" className="block text-sm font-medium text-gray-700 mb-2">
-          What goal would you like to achieve?
-        </label>
-        <textarea
-          id="goal-input"
-          value={goal}
-          onChange={handleChange}
-          disabled={isLoading}
-          placeholder="Example: I want to improve my physical fitness and have more energy throughout the day. I currently don't exercise regularly and want to build a sustainable routine that fits into my busy schedule."
-          className={`w-full px-4 py-3 rounded-xl border ${
-            error ? 'border-red-500 animate-shake' : 'border-gray-300'
-          } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-all duration-200 ${
-            isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-indigo-300'
-          }`}
-          rows={6}
-          maxLength={MAX_CHARACTERS + 50} // Allow typing a bit over to show error
-        />
-        
-        {/* Character Counter */}
-        <div className="flex justify-between items-center mt-2">
-          <div className="text-xs text-gray-500">
+    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Goal statement</p>
+            <p className="text-sm text-slate-500">Write as if you were explaining it to a friend.</p>
+          </div>
+          <span className={`text-xs font-semibold ${getCharacterCountColor()}`}>
+            {characterCount} / {MAX_CHARACTERS}
+          </span>
+        </div>
+        <div
+          className={`rounded-2xl border ${
+            error ? 'border-rose-400 shadow-[0_0_0_1px_rgba(244,63,94,0.4)]' : 'border-slate-200'
+          } bg-white/80 transition-colors`}
+        >
+          <textarea
+            id="goal-input"
+            value={goal}
+            onChange={handleChange}
+            disabled={isLoading}
+            placeholder="Example: I want consistent, energizing movement in the morning without adding stress to my schedule."
+            className="w-full bg-transparent px-4 py-4 rounded-2xl text-base leading-relaxed text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:cursor-not-allowed"
+            rows={6}
+            maxLength={MAX_CHARACTERS + 50}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-slate-500">
+          <span>
             {isUnderMinimum && (
-              <span className="text-yellow-600">
-                {MIN_CHARACTERS - characterCount} more characters needed
+              <span className="text-amber-600">
+                {MIN_CHARACTERS - characterCount} more characters to unlock precise suggestions
               </span>
             )}
-          </div>
-          <div className={`text-xs font-medium ${getCharacterCountColor()}`}>
-            {characterCount} / {MAX_CHARACTERS}
-          </div>
+          </span>
+          {isOverLimit && <span className="text-rose-500">Please trim your goal for clarity.</span>}
         </div>
-        
-        {/* Error Message */}
         {error && (
-          <div className="mt-2 text-sm text-red-600 flex items-center animate-fade-in">
-            <svg 
-              className="w-4 h-4 mr-1 flex-shrink-0" 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
-                clipRule="evenodd" 
+          <div className="flex items-center gap-2 text-sm text-rose-600">
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
               />
             </svg>
             {error}
@@ -120,48 +118,27 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         )}
       </div>
 
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={isLoading || isOverLimit}
-        className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 ${
+        className={`w-full rounded-[18px] py-4 px-6 text-base font-semibold tracking-tight text-white transition-all ${
           isLoading || isOverLimit
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transform hover:scale-105 active:scale-95'
+            ? 'bg-slate-400 cursor-not-allowed'
+            : 'bg-slate-900 hover:bg-slate-800'
         }`}
       >
         {isLoading ? (
-          <span className="flex items-center justify-center">
-            <svg 
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
-              xmlns="http://www.w3.org/2000/svg" 
-              fill="none" 
-              viewBox="0 0 24 24"
-            >
-              <circle 
-                className="opacity-25" 
-                cx="12" 
-                cy="12" 
-                r="10" 
-                stroke="currentColor" 
-                strokeWidth="4"
-              />
-              <path 
-                className="opacity-75" 
-                fill="currentColor" 
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            Processing...
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            Processing
           </span>
         ) : (
-          'Generate My Habits'
+          'Generate my habits'
         )}
       </button>
-      
-      {/* Helper Text */}
-      <p className="text-xs text-gray-500 text-center">
-        Our AI will analyze your goal and create personalized habit recommendations based on Atomic Habits principles.
+
+      <p className="text-xs text-center text-slate-500">
+        Your words stay private and only help us craft a plan rooted in the four laws.
       </p>
     </form>
   )

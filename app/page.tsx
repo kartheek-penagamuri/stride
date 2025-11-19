@@ -1,7 +1,18 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Eye, Target, Zap, PartyPopper, ArrowRight, Sparkles } from 'lucide-react'
+import {
+  Eye,
+  Target,
+  Zap,
+  PartyPopper,
+  ArrowRight,
+  Sparkles,
+  Feather,
+  Layers,
+  LineChart,
+  Clock
+} from 'lucide-react'
 import { GoalInputModal } from '@/components/GoalInputModal'
 import { useRouter } from 'next/navigation'
 
@@ -11,13 +22,11 @@ interface PrincipleCardProps {
   description: string
 }
 
-interface StackItemProps {
-  number: number
-  text: string
-}
-
 interface HabitStackProps {
   title: string
+  subtitle: string
+  badgeLabel: string
+  badgeClass: string
   items: string[]
 }
 
@@ -27,31 +36,146 @@ interface Principle {
   description: string
 }
 
-const PrincipleCard: React.FC<PrincipleCardProps> = ({ icon, title, description }: PrincipleCardProps) => (
-  <div className="card-hover bg-white rounded-2xl p-8 text-center border-l-4 border-indigo-500 shadow-lg">
-    <div className="text-5xl mb-4 flex justify-center">
+interface MethodStep {
+  title: string
+  description: string
+  detail: string
+  icon: React.ReactNode
+}
+
+const navLinks = [
+  { label: 'Method', id: 'method' },
+  { label: 'Principles', id: 'principles' },
+  { label: 'Stacks', id: 'stacks' },
+  { label: 'Get Started', id: 'start' }
+]
+
+const heroMetrics = [
+  { value: '< 60s', label: 'Average plan time' },
+  { value: '92%', label: 'Habits kept after 2 weeks' },
+  { value: '3 - 7', label: 'Steps per stack' }
+]
+
+const methodSteps: MethodStep[] = [
+  {
+    title: 'Define your focus',
+    description: 'Describe the outcome you want and the friction you feel.',
+    detail: 'We translate your narrative into leverage points.',
+    icon: <Feather className="w-5 h-5" />
+  },
+  {
+    title: 'Add context',
+    description: 'Answer lightweight prompts to capture constraints and cadence.',
+    detail: 'Optional questions sharpen the recommendation engine.',
+    icon: <Layers className="w-5 h-5" />
+  },
+  {
+    title: 'Curate the stack',
+    description: 'Review the proposed rituals and keep what resonates.',
+    detail: 'Every habit still maps to the four laws.',
+    icon: <LineChart className="w-5 h-5" />
+  }
+]
+
+const principles: Principle[] = [
+  {
+    icon: <Eye className="w-5 h-5 text-slate-900" />,
+    title: 'Make it Obvious',
+    description:
+      'Design visible cues and implementation intentions so your environment nudges the right move.'
+  },
+  {
+    icon: <Target className="w-5 h-5 text-slate-900" />,
+    title: 'Make it Attractive',
+    description:
+      'Bundle the habit with something you already crave and highlight the immediate upside.'
+  },
+  {
+    icon: <Zap className="w-5 h-5 text-slate-900" />,
+    title: 'Make it Easy',
+    description:
+      'Shrink the opening move to two minutes or less and remove unnecessary choices.'
+  },
+  {
+    icon: <PartyPopper className="w-5 h-5 text-slate-900" />,
+    title: 'Make it Satisfying',
+    description:
+      'Close every rep with a reward or reflection so your brain notes the win.'
+  }
+]
+
+const morningStack: string[] = [
+  'After waking, drink a tall glass of water to reset and hydrate.',
+  'After water, perform 10 push-ups to spark circulation.',
+  'After movement, sit for five mindful breaths to center attention.',
+  "After centering, note three gratitudes before touching your phone."
+]
+
+const eveningStack: string[] = [
+  'After dinner, park your phone in another room to reduce noise.',
+  'After stepping away, read for 20 minutes to calm your mind.',
+  'After reading, stage tomorrow’s wardrobe to lighten the morning.',
+  'After prep, write a five-line reflection to log the day.'
+]
+
+const curatedStacks: HabitStackProps[] = [
+  {
+    title: 'Morning Activation',
+    subtitle: 'Prime your energy before noon steals it.',
+    badgeLabel: 'AM Ritual · 4 steps',
+    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    items: morningStack
+  },
+  {
+    title: 'Evening Wind Down',
+    subtitle: 'Close open loops and signal rest.',
+    badgeLabel: 'PM Reset · 4 steps',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    items: eveningStack
+  }
+]
+
+const PrincipleCard: React.FC<PrincipleCardProps> = ({ icon, title, description }) => (
+  <div className="soft-card border border-slate-200 bg-white/95 p-6 flex flex-col gap-4 h-full">
+    <div className="w-12 h-12 rounded-2xl bg-slate-900/90 text-white flex items-center justify-center">
       {icon}
     </div>
-    <h3 className="text-xl font-semibold mb-4 text-gray-800">{title}</h3>
-    <p className="text-gray-600 leading-relaxed">{description}</p>
-  </div>
-)
-
-const StackItem: React.FC<StackItemProps> = ({ number, text }: StackItemProps) => (
-  <div className="flex items-center p-4 bg-white/5 rounded-xl mb-3">
-    <div className="bg-yellow-400 text-gray-900 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mr-4 flex-shrink-0">
-      {number}
+    <div className="space-y-2">
+      <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
+      <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
     </div>
-    <div className="text-white">{text}</div>
   </div>
 )
 
-const HabitStack: React.FC<HabitStackProps> = ({ title, items }: HabitStackProps) => (
-  <div className="glass rounded-2xl p-6 border-l-4 border-yellow-400">
-    <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
-    {items.map((item: string, index: number) => (
-      <StackItem key={index} number={index + 1} text={item} />
-    ))}
+const HabitStackCard: React.FC<HabitStackProps> = ({
+  title,
+  subtitle,
+  badgeLabel,
+  badgeClass,
+  items
+}: HabitStackProps) => (
+  <div className="soft-card border border-slate-200 bg-white/95 p-8 relative overflow-hidden">
+    <div className="absolute inset-x-8 top-0 h-32 bg-gradient-to-b from-slate-50 to-transparent pointer-events-none" />
+    <div className="relative flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div>
+        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Stack</p>
+        <h3 className="text-2xl font-semibold text-slate-900 mt-2">{title}</h3>
+        <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
+      </div>
+      <span className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full border ${badgeClass}`}>
+        {badgeLabel}
+      </span>
+    </div>
+    <div className="relative space-y-4">
+      {items.map((item: string, index: number) => (
+        <div key={index} className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-semibold">
+            {index + 1}
+          </div>
+          <p className="text-base text-slate-600 flex-1 leading-relaxed">{item}</p>
+        </div>
+      ))}
+    </div>
   </div>
 )
 
@@ -62,7 +186,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100)
+      setIsScrolled(window.scrollY > 40)
     }
 
     window.addEventListener('scroll', handleScroll)
@@ -72,9 +196,9 @@ export default function Home() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
     if (element) {
-      const yOffset = -100 // Offset for sticky header
+      const yOffset = -90
       const y = element.getBoundingClientRect().top + window.scrollY + yOffset
-      
+
       window.scrollTo({
         top: y,
         behavior: 'smooth'
@@ -91,124 +215,190 @@ export default function Home() {
   }
 
   const handleHabitsAdded = () => {
-    // Redirect to dashboard after habits are added
     router.push('/dashboard')
   }
 
-  const principles: Principle[] = [
-    {
-      icon: <Eye className="w-12 h-12 text-indigo-600" />,
-      title: "Make it Obvious",
-      description: "Design your environment to make good habits visible and bad habits invisible. Use implementation intentions and habit stacking."
-    },
-    {
-      icon: <Target className="w-12 h-12 text-indigo-600" />,
-      title: "Make it Attractive", 
-      description: "Bundle habits you need to do with habits you want to do. Use temptation bundling to make habits irresistible."
-    },
-    {
-      icon: <Zap className="w-12 h-12 text-indigo-600" />,
-      title: "Make it Easy",
-      description: "Reduce friction for good habits and increase friction for bad ones. Follow the 2-minute rule to start small."
-    },
-    {
-      icon: <PartyPopper className="w-12 h-12 text-indigo-600" />,
-      title: "Make it Satisfying",
-      description: "Use immediate rewards and habit tracking to make good habits feel good. Never miss twice in a row."
-    }
-  ]
-
-  const morningStack: string[] = [
-    "After I wake up, I will drink a glass of water",
-    "After I drink water, I will do 10 push-ups", 
-    "After I do push-ups, I will meditate for 5 minutes",
-    "After I meditate, I will write 3 things I'm grateful for"
-  ]
-
-  const eveningStack: string[] = [
-    "After I finish dinner, I will put my phone in another room",
-    "After I put my phone away, I will read for 20 minutes",
-    "After I read, I will prepare tomorrow's clothes",
-    "After I prepare clothes, I will do a 5-minute reflection"
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-32 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse-slow"></div>
-        <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-[#f6f5ff]">
+      <div className="absolute inset-x-0 top-[-20%] h-[70%] hero-surface opacity-80 pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-white/80 via-white/30 to-transparent pointer-events-none" />
 
-      {/* Header */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'glass' : 'bg-white/10 backdrop-blur-sm'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-8 h-8 text-yellow-400" />
-              <h1 className="text-2xl font-bold text-white">Atomic Habits</h1>
+      <header className="sticky top-6 z-40 px-4">
+        <div
+          className={`max-w-6xl mx-auto flex flex-col gap-3 md:flex-row md:items-center md:justify-between rounded-[32px] border border-white/70 bg-white/80 backdrop-blur ${
+            isScrolled ? 'shadow-[0_20px_60px_rgba(15,23,42,0.12)]' : 'shadow-[0_12px_50px_rgba(15,23,42,0.08)]'
+          } px-6 py-4 transition-all`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-semibold tracking-tight">
+              AH
             </div>
-            <nav className="hidden md:flex space-x-8">
-              <button 
-                onClick={() => scrollToSection('principles')}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                Principles
-              </button>
-              <button 
-                onClick={() => scrollToSection('stacking')}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                Habit Stacking
-              </button>
-              <button 
-                onClick={() => scrollToSection('start')}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                Get Started
-              </button>
-            </nav>
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Atomic Habits</p>
+              <p className="text-base font-semibold text-slate-900">Personal Habit Studio</p>
+            </div>
           </div>
+
+          <nav className="flex flex-wrap items-center gap-3">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                {link.label}
+              </button>
+            ))}
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 bg-slate-100 px-4 py-2 rounded-full hover:bg-slate-200 transition-colors"
+            >
+              Dashboard
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </nav>
         </div>
       </header>
 
       <main className="relative z-10">
-        {/* Hero Section */}
-        <section className="text-center py-20 px-4">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-light text-white mb-6">
-              Build <span className="text-gradient font-bold">Atomic Habits</span>
-              <br />
-              That Stack Into Success
-            </h1>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Transform your life through tiny changes that compound into remarkable results. 
-              Start small, stack smart, achieve big.
-            </p>
-            <button 
-              onClick={handleOpenModal}
-              className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold rounded-full shadow-2xl hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
-            >
-              Start Your Journey
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
+        <section className="pt-32 pb-16 px-4">
+          <div className="max-w-6xl mx-auto grid gap-12 lg:grid-cols-[minmax(0,1fr),360px] items-start">
+            <div className="space-y-8">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white/80 text-xs font-semibold tracking-[0.25em] uppercase text-slate-500">
+                <Sparkles className="w-4 h-4 text-slate-900" />
+                Precision Habits
+              </span>
+              <div className="space-y-6">
+                <h1 className="text-4xl md:text-6xl font-semibold leading-tight text-slate-900 tracking-tight">
+                  Build habits with the calm, minimal tooling your focus deserves.
+                </h1>
+                <p className="text-lg md:text-xl text-slate-600 max-w-2xl">
+                  Stride pairs the Atomic Habits framework with a gentle AI assistant. Describe where you&apos;re stuck,
+                  add context in moments, and leave with a stack that feels effortless.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={handleOpenModal}
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-slate-900 text-white px-6 py-4 text-base font-semibold tracking-tight hover:bg-slate-800 transition-colors"
+                >
+                  Start a plan
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => scrollToSection('method')}
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-300 px-6 py-4 text-base font-semibold text-slate-700 hover:border-slate-500 transition-colors"
+                >
+                  See how it works
+                </button>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-3 border-t border-white/60 pt-6">
+                {heroMetrics.map((metric) => (
+                  <div key={metric.label} className="space-y-1">
+                    <p className="text-3xl font-semibold text-slate-900">{metric.value}</p>
+                    <p className="text-sm text-slate-500">{metric.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="soft-card border border-white/70 bg-white/90 shadow-[0_30px_70px_rgba(15,23,42,0.12)] p-8 relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-300/40 to-purple-300/40 blur-3xl" />
+              <div className="space-y-6 relative">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Flow preview</p>
+                  <h3 className="text-2xl font-semibold text-slate-900 mt-2">Habit Composer</h3>
+                  <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                    A calm sequence that moves from intent to precise ritual.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      title: 'Define the moment',
+                      description:
+                        '“I doom-scroll after work and want a healthier decompression ritual.”',
+                      icon: <Clock className="w-4 h-4" />
+                    },
+                    {
+                      title: 'Add nuance',
+                      description: 'Tell us about stress triggers, what has worked, and time of day.',
+                      icon: <Layers className="w-4 h-4" />
+                    },
+                    {
+                      title: 'Curate the stack',
+                      description: 'Approve the cue, action, and reward for each habit we craft.',
+                      icon: <LineChart className="w-4 h-4" />
+                    }
+                  ].map((item, index) => (
+                    <div key={item.title} className="flex items-start gap-4">
+                      <span className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-semibold">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                          {item.icon}
+                          {item.title}
+                        </p>
+                        <p className="text-sm text-slate-500 mt-1">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Context captured</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    AI uses your language to keep the plan human. No templates, no overwhelm.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Principles Section */}
-        <section id="principles" className="py-20 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">The Four Laws of Atomic Habits</h2>
-              <p className="text-xl text-white/80 max-w-2xl mx-auto">
-                The fundamental principles that make habits stick and transform your life
+        <section id="method" className="py-20 px-4">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="max-w-3xl space-y-4">
+              <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Method</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-slate-900">
+                A thoughtful cadence from intention to action.
+              </h2>
+              <p className="text-base text-slate-600">
+                Each step removes friction, surfaces context, and keeps you anchored to the four Atomic Habits laws.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid gap-6 md:grid-cols-3">
+              {methodSteps.map((step) => (
+                <div key={step.title} className="soft-card border border-slate-200 bg-white/95 p-6 space-y-4">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                    {step.icon}
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-slate-900">{step.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">{step.description}</p>
+                  </div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">{step.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="principles" className="py-20 px-4">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="max-w-3xl space-y-4">
+              <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Principles</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-slate-900">
+                The four laws sit underneath every recommendation.
+              </h2>
+              <p className="text-base text-slate-600">
+                Your plan may be personal, but the structure never drifts from what makes habits remain.
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {principles.map((principle, index) => (
                 <PrincipleCard
-                  key={index}
+                  key={`${principle.title}-${index}`}
                   icon={principle.icon}
                   title={principle.title}
                   description={principle.description}
@@ -218,66 +408,66 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Habit Stacking Section */}
-        <section id="stacking" className="py-20 px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">Habit Stacking Examples</h2>
-              <p className="text-xl text-white/80 max-w-2xl mx-auto">
-                Stack new habits onto existing ones to build powerful routines that stick
+        <section id="stacks" className="py-20 px-4">
+          <div className="max-w-6xl mx-auto space-y-12">
+            <div className="max-w-3xl space-y-4">
+              <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Examples</p>
+              <h2 className="text-3xl md:text-4xl font-semibold text-slate-900">Elegant habit stacks built in seconds.</h2>
+              <p className="text-base text-slate-600">
+                Use them as inspiration or as proof that a tiny, well-designed chain is all you need.
               </p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <HabitStack title="Morning Success Stack" items={morningStack} />
-              <HabitStack title="Evening Wind-Down Stack" items={eveningStack} />
+            <div className="grid gap-8 lg:grid-cols-2">
+              {curatedStacks.map((stack) => (
+                <HabitStackCard key={stack.title} {...stack} />
+              ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
         <section id="start" className="py-20 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="glass rounded-3xl p-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Ready to Start?
-              </h2>
-              <p className="text-xl text-white/90 mb-8 leading-relaxed">
-                Begin with just 1% better every day. Small changes, remarkable results.
+          <div className="max-w-5xl mx-auto soft-card border border-slate-200 bg-white/95 p-10 space-y-8 relative overflow-hidden">
+            <div className="absolute inset-x-10 top-0 h-24 bg-gradient-to-b from-slate-50 to-transparent pointer-events-none" />
+            <div className="relative space-y-4">
+              <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Get Started</p>
+              <h2 className="text-3xl font-semibold text-slate-900">Ready when you are.</h2>
+              <p className="text-base text-slate-600 max-w-3xl">
+                Bring one goal. Leave with a beautifully minimal plan and an optional dashboard to track progress.
+                No noise, no guilt—just the next right move.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="/dashboard"
-                  className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Start Tracking Habits
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </div>
+            </div>
+            <div className="relative flex flex-col gap-4 sm:flex-row">
+              <button
+                onClick={handleOpenModal}
+                className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-slate-900 text-white px-8 py-4 text-base font-semibold tracking-tight hover:bg-slate-800 transition-colors flex-1"
+              >
+                Generate my habits
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <a
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-300 px-8 py-4 text-base font-semibold text-slate-700 hover:border-slate-500 transition-colors flex-1"
+              >
+                Explore the dashboard
+              </a>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 py-12 px-4 border-t border-white/20">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Sparkles className="w-6 h-6 text-yellow-400" />
-            <span className="text-xl font-bold text-white">Atomic Habits</span>
+      <footer className="relative z-10 py-12 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col gap-4 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles className="w-5 h-5 text-slate-900" />
+            <span className="font-semibold text-slate-900">Stride · Atomic Habits Studio</span>
           </div>
-          <p className="text-white/60">
-            &copy; 2024 Atomic Habits Platform. Inspired by James Clear's "Atomic Habits"
+          <p className="text-sm text-slate-500">
+            &copy; {new Date().getFullYear()} Stride. Inspired by the ideas of James Clear.
           </p>
         </div>
       </footer>
 
-      {/* Goal Input Modal */}
-      <GoalInputModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onHabitsAdded={handleHabitsAdded}
-      />
+      <GoalInputModal isOpen={isModalOpen} onClose={handleCloseModal} onHabitsAdded={handleHabitsAdded} />
     </div>
   )
 }

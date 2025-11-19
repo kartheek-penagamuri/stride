@@ -52,65 +52,38 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 animate-fade-in">
-      {/* Animated Spinner */}
-      <div className="relative mb-8">
-        {/* Outer rotating ring */}
-        <div className="w-20 h-20 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
-        
-        {/* Inner pulsing circle */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 animate-pulse opacity-50" />
+      <div className="rounded-[32px] border border-slate-200 bg-white/90 p-10 text-center space-y-8 max-w-xl w-full shadow-[0_30px_70px_rgba(15,23,42,0.08)]">
+        <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+          <div className="absolute inset-1 rounded-full border-4 border-slate-300/80 border-t-slate-900 animate-spin" />
+          <div className="h-12 w-12 rounded-full bg-slate-900/10" />
         </div>
-        
-        {/* Center dot */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 rounded-full bg-indigo-600" />
+
+        <div className="space-y-3">
+          <p className="text-lg font-semibold text-slate-900">{displayMessage}</p>
+          <p className="text-sm text-slate-500">
+            Our AI is sketching the cue, action, and reward so you get a thoughtful stack.
+          </p>
         </div>
-      </div>
 
-      {/* Status Message */}
-      <div className="text-center space-y-4">
-        <p className="text-base sm:text-lg font-semibold text-gray-800 animate-pulse">
-          {displayMessage}
-        </p>
-        
-        <p className="text-xs sm:text-sm text-gray-600 max-w-md px-4">
-          Our AI is working hard to create the perfect habit recommendations for you.
-        </p>
-      </div>
-
-      {/* Timeout Warning */}
-      {showTimeout && (
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl max-w-md mx-4 animate-fade-in-up">
-          <div className="flex items-start">
-            <svg 
-              className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-yellow-800">
-                This is taking longer than expected
-              </p>
-              <p className="text-xs text-yellow-700 mt-1">
-                Please wait while we complete your request. This may take a few more moments.
-              </p>
-            </div>
+        {showTimeout && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-left space-y-1">
+            <p className="text-sm font-semibold text-amber-800">This is taking a bit longer.</p>
+            <p className="text-xs text-amber-700">
+              Stay with us—your goal is safe and we&apos;re finalizing the recommendation.
+            </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading Dots Animation */}
-      <div className="flex space-x-2 mt-6">
-        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="flex items-center justify-center gap-2">
+          {[0, 150, 300].map((delay) => (
+            <span
+              key={delay}
+              className="h-1.5 w-8 rounded-full bg-slate-200 animate-pulse"
+              style={{ animationDelay: `${delay}ms` }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

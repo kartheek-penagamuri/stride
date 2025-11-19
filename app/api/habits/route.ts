@@ -23,6 +23,7 @@ export async function GET() {
 
     return NextResponse.json({ habits })
   } catch (error) {
+    console.error('Failed to fetch habits:', error)
     return NextResponse.json(
       { error: 'Failed to fetch habits' },
       { status: 500 }
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ habit: newHabit }, { status: 201 })
   } catch (error) {
+    console.error('Failed to create habit:', error)
     return NextResponse.json(
       { error: 'Failed to create habit' },
       { status: 500 }

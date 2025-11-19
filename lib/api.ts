@@ -33,6 +33,7 @@ async function apiRequest<T>(
 
     return { data }
   } catch (error) {
+    console.error('API request failed:', error)
     return { error: 'Network error occurred' }
   }
 }

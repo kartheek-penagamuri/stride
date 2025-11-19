@@ -10,26 +10,28 @@ import { ERROR_MESSAGES, ERROR_CODES, INPUT_ERRORS } from '@/lib/constants'
 /**
  * Validates the request body
  */
-function validateRequest(body: any): { valid: boolean; error?: string } {
-  if (!body || typeof body !== 'object') {
+function validateRequest(body: unknown): { valid: boolean; error?: string } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { valid: false, error: INPUT_ERRORS.INVALID_INPUT }
   }
 
-  if (!body.goal || typeof body.goal !== 'string') {
+  const { goal } = body as { goal?: unknown }
+
+  if (typeof goal !== 'string') {
     return { valid: false, error: INPUT_ERRORS.INVALID_INPUT }
   }
 
-  const goal = body.goal.trim()
+  const trimmedGoal = goal.trim()
 
-  if (goal.length === 0) {
+  if (trimmedGoal.length === 0) {
     return { valid: false, error: INPUT_ERRORS.EMPTY_GOAL }
   }
 
-  if (goal.length < 10) {
+  if (trimmedGoal.length < 10) {
     return { valid: false, error: INPUT_ERRORS.GOAL_TOO_SHORT }
   }
 
-  if (goal.length > 500) {
+  if (trimmedGoal.length > 500) {
     return { valid: false, error: INPUT_ERRORS.GOAL_TOO_LONG }
   }
 
