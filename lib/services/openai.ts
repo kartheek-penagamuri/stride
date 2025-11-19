@@ -66,41 +66,48 @@ function getOpenAIClient(): OpenAI {
 /**
  * Instructions for asking clarifying questions
  */
-const CLARIFYING_QUESTIONS_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who responds with a therapist-like level of empathy and personalization. 
+const CLARIFYING_QUESTIONS_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who responds with a therapist-like level of empathy and personalization.
 Your role is to ask thoughtful clarifying questions to understand the user's context before creating habit recommendations.
 
 Guidelines:
 - Analyze the user's stated goal deeply before deciding what to ask.
-- Ask only the most relevant, high-leverage questions needed to craft a personalized plan—skip anything that feels like filler.
+- Ask only the most relevant, high-leverage questions needed to craft a personalized plan; skip anything that feels like filler.
 - Each question must be a single line, conversational, and easy to answer.
 - Typically ask between 2 and 6 questions; exceed six only when the goal clearly spans multiple domains and more detail is essential.
 - Draw from topics like baseline routines, time constraints, environment, preferences, past attempts, obstacles, or motivation as appropriate instead of covering every category by default.
 - Mirror the user's tone respectfully and keep the wording concise yet supportive.
 
-CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
-
-Return ONLY this JSON structure with no additional text:
-{
-  "questions": [
-    "What does your typical daily schedule look like?",
-    "What time of day do you feel most energized?",
-    "What has prevented you from achieving this goal in the past?",
-    "How much time can you realistically dedicate to this each day?",
-    "Where will you be doing this activity? (home, gym, office, etc.)"
-  ]
-}
-
 Make questions specific to their goal, conversational, and easy to answer while keeping the list as short as possible without losing essential context.`
+
+const CLARIFYING_QUESTIONS_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['questions'],
+  properties: {
+    questions: {
+      type: 'array',
+      description: 'Ordered list of concise, single-line clarifying questions',
+      items: {
+        type: 'string',
+        minLength: 1,
+        description: 'A conversational clarifying question tailored to the user goal'
+      },
+      minItems: 1,
+      maxItems: 10
+    }
+  }
+} as const
+
 
 /**
  * Instructions for generating habits with context
  */
-const HABIT_GENERATION_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who speaks with a therapist-like blend of empathy, candor, and strategic thinking. 
+const HABIT_GENERATION_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who speaks with a therapist-like blend of empathy, candor, and strategic thinking.
 Your role is to analyze user goals plus their specific context to create deeply personalized, actionable habit recommendations.
 
 Every response must include:
-1. "goalAnalysis" — Summarize the user's needs, constraints, and motivational levers in no more than two short paragraphs. Keep the tone respectful, motivating, and concise.
-2. "habits" — An array of habit plans where each habit entry contains:
+1. "goalAnalysis" - Summarize the user's needs, constraints, and motivational levers in no more than two short paragraphs. Keep the tone respectful, motivating, and concise, and speak directly to them using "you/your" language.
+2. "habits" - An array of habit plans where each habit entry contains:
    - A clear, specific title
    - An explicit cue (existing behavior or specific time)
    - A simple, repeatable action
@@ -114,31 +121,69 @@ Habit generation guidelines:
 - Ensure each habit is simple (under 5 minutes initially), stacks logically, and grows from easiest to more challenging.
 - Tailor every habit to the user's schedule, environment, motivation, and prior experiences. Do not include filler habits.
 - Maintain a therapist-coach tone that addresses mindset and practical execution equally.
+- When referencing the user, always address them directly (e.g., "You have..." instead of "The user has...").
 - Stacking order should start at 1 and increase sequentially without gaps.
-
-CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
-
-Return ONLY this JSON structure with no additional text:
-{
-  "goalAnalysis": "Brief analysis of the user's goal and context",
-  "habits": [
-    {
-      "title": "Habit name",
-      "cue": "After I wake up",
-      "action": "I will drink a full glass of water",
-      "reward": "I will feel refreshed and energized",
-      "suggestedTime": "6:30 AM",
-      "timeReasoning": "Best done immediately upon waking",
-      "category": "health",
-      "atomicPrinciples": ["obvious", "easy"],
-      "stackingOrder": 1
-    }
-  ]
-}
 
 Categories must be one of: health, learning, productivity, mindfulness, fitness, general
 Atomic principles must be from: obvious, attractive, easy, satisfying
 Stacking order should mirror the logical sequence of the habit ladder.`
+
+const HABIT_GENERATION_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['goalAnalysis', 'habits'],
+  properties: {
+    goalAnalysis: {
+      type: 'string',
+      description: 'Two short paragraphs summarizing the user\'s needs, constraints, and motivations'
+    },
+    habits: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 10,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'title',
+          'cue',
+          'action',
+          'reward',
+          'suggestedTime',
+          'timeReasoning',
+          'category',
+          'atomicPrinciples',
+          'stackingOrder'
+        ],
+        properties: {
+          title: { type: 'string', minLength: 1 },
+          cue: { type: 'string', minLength: 1 },
+          action: { type: 'string', minLength: 1 },
+          reward: { type: 'string', minLength: 1 },
+          suggestedTime: { type: 'string', minLength: 1 },
+          timeReasoning: { type: 'string', minLength: 1 },
+          category: {
+            type: 'string',
+            enum: ['health', 'learning', 'productivity', 'mindfulness', 'fitness', 'general']
+          },
+          atomicPrinciples: {
+            type: 'array',
+            items: {
+              type: 'string',
+              enum: ['obvious', 'attractive', 'easy', 'satisfying']
+            },
+            minItems: 1
+          },
+          stackingOrder: {
+            type: 'integer',
+            minimum: 1
+          }
+        }
+      }
+    }
+  }
+} as const
+
 
 /**
  * Generates clarifying questions based on user's goal
@@ -153,18 +198,25 @@ export async function generateClarifyingQuestions(goal: string): Promise<string[
   }
 
   const client = getOpenAIClient()
-
   const userInput = `User's goal: ${goal}
 
 Identify only the most essential clarifying questions needed to create a personalized habit plan. Default to 2-6 concise, single-line questions and exceed that range only if the goal clearly requires more context.`
 
   try {
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5.1',
+      model: 'gpt-5.1',
       instructions: CLARIFYING_QUESTIONS_INSTRUCTIONS,
       input: userInput,
       temperature: 0.7,
-      max_output_tokens: 1000
+      max_output_tokens: 1000,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'clarifying_questions',
+          schema: CLARIFYING_QUESTIONS_SCHEMA,
+          strict: true
+        }
+      }
     })
 
     const responseContent = response.output_text
@@ -175,15 +227,7 @@ Identify only the most essential clarifying questions needed to create a persona
 
     let parsedResponse: OpenAIQuestionsResponse
     try {
-      // Try to extract JSON if wrapped in markdown code blocks
-      let jsonContent = responseContent.trim()
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '')
-      }
-      
-      parsedResponse = JSON.parse(jsonContent)
+      parsedResponse = JSON.parse(responseContent)
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', responseContent)
       console.error('Parse error:', parseError)
@@ -263,11 +307,19 @@ Summarize the goal and context in no more than two short paragraphs and generate
 
   try {
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5.1',
+      model: 'gpt-5.1',
       instructions: HABIT_GENERATION_INSTRUCTIONS,
       input: userInput,
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      max_output_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000')
+      max_output_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'habit_plan',
+          schema: HABIT_GENERATION_SCHEMA,
+          strict: true
+        }
+      }
     })
 
     const responseContent = response.output_text
@@ -276,18 +328,9 @@ Summarize the goal and context in no more than two short paragraphs and generate
       throw new OpenAIServiceError('No response from OpenAI', 'AI_ERROR')
     }
 
-    // Parse the JSON response
     let parsedResponse: OpenAIHabitResponse
     try {
-      // Try to extract JSON if wrapped in markdown code blocks
-      let jsonContent = responseContent.trim()
-      if (jsonContent.startsWith('```json')) {
-        jsonContent = jsonContent.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-      } else if (jsonContent.startsWith('```')) {
-        jsonContent = jsonContent.replace(/^```\s*/, '').replace(/\s*```$/, '')
-      }
-      
-      parsedResponse = JSON.parse(jsonContent)
+      parsedResponse = JSON.parse(responseContent)
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', responseContent)
       console.error('Parse error:', parseError)
@@ -329,8 +372,8 @@ Summarize the goal and context in no more than two short paragraphs and generate
       : ''
 
     const fallbackGoalAnalysis = normalizedGoal
-      ? `Personalized habit plan for "${normalizedGoal}".`
-      : 'Personalized habit plan.'
+      ? `Your personalized habit plan for "${normalizedGoal}".`
+      : 'Your personalized habit plan.'
 
     return {
       goalAnalysis: goalAnalysis || fallbackGoalAnalysis,
