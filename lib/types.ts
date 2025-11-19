@@ -94,7 +94,7 @@ export interface GenerateHabitsRequest {
 
 export interface GenerateHabitsResponse {
   habits: AIGeneratedHabit[]
-  goalAnalysis?: string
+  goalAnalysis: string
 }
 
 export interface GenerateClarifyingQuestionsRequest {
@@ -107,7 +107,7 @@ export interface GenerateClarifyingQuestionsResponse {
 
 // OpenAI Response Schema
 export interface OpenAIHabitResponse {
-  goalAnalysis: string // Brief analysis of the goal
+  goalAnalysis: string // Brief analysis of the goal (max two short paragraphs)
   habits: Array<{
     title: string
     cue: string

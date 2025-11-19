@@ -66,18 +66,16 @@ function getOpenAIClient(): OpenAI {
 /**
  * Instructions for asking clarifying questions
  */
-const CLARIFYING_QUESTIONS_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
+const CLARIFYING_QUESTIONS_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who responds with a therapist-like level of empathy and personalization. 
 Your role is to ask thoughtful clarifying questions to understand the user's context before creating habit recommendations.
 
-Based on the user's goal, generate 5-7 specific, relevant questions that will help you create a truly personalized habit plan.
-
-Questions should cover:
-- Current situation and baseline
-- Available time and schedule constraints
-- Environment and context
-- Preferences and past experiences
-- Specific obstacles or challenges
-- Motivation and desired outcomes
+Guidelines:
+- Analyze the user's stated goal deeply before deciding what to ask.
+- Ask only the most relevant, high-leverage questions needed to craft a personalized plan—skip anything that feels like filler.
+- Each question must be a single line, conversational, and easy to answer.
+- Typically ask between 2 and 6 questions; exceed six only when the goal clearly spans multiple domains and more detail is essential.
+- Draw from topics like baseline routines, time constraints, environment, preferences, past attempts, obstacles, or motivation as appropriate instead of covering every category by default.
+- Mirror the user's tone respectfully and keep the wording concise yet supportive.
 
 CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
 
@@ -92,30 +90,31 @@ Return ONLY this JSON structure with no additional text:
   ]
 }
 
-Make questions specific to their goal, conversational, and easy to answer.`
+Make questions specific to their goal, conversational, and easy to answer while keeping the list as short as possible without losing essential context.`
 
 /**
  * Instructions for generating habits with context
  */
-const HABIT_GENERATION_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology. 
-Your role is to analyze user goals and their specific context to create personalized, actionable habit recommendations.
+const HABIT_GENERATION_INSTRUCTIONS = `You are an expert habit coach trained in James Clear's Atomic Habits methodology who speaks with a therapist-like blend of empathy, candor, and strategic thinking. 
+Your role is to analyze user goals plus their specific context to create deeply personalized, actionable habit recommendations.
 
-For each habit, you must provide:
-1. A clear, specific title
-2. An explicit cue (existing behavior or specific time)
-3. A simple, repeatable action
-4. An immediate reward
-5. Suggested time of day with reasoning
-6. Which Atomic Habits principles apply (obvious, attractive, easy, satisfying)
+Every response must include:
+1. "goalAnalysis" — Summarize the user's needs, constraints, and motivational levers in no more than two short paragraphs. Keep the tone respectful, motivating, and concise.
+2. "habits" — An array of habit plans where each habit entry contains:
+   - A clear, specific title
+   - An explicit cue (existing behavior or specific time)
+   - A simple, repeatable action
+   - An immediate reward
+   - Suggested time of day with reasoning written like a compassionate coach
+   - Which Atomic Habits principles apply (obvious, attractive, easy, satisfying)
 
-Generate 3-7 habits that:
-- Are simple and take less than 5 minutes initially
-- Stack logically on each other
-- Follow the format: "After [CUE], I will [ACTION], and then [REWARD]"
-- Progress from easiest to more challenging
-- Are specific and measurable
-- Build upon each other in a logical sequence
-- Are tailored to the user's specific context and constraints
+Habit generation guidelines:
+- Decide dynamically how many habits are truly needed. Provide at least one habit and generally keep to six or fewer unless the user's data clearly demands more support.
+- Keep each cue/action/reward sentence concise (one line) so guidance stays easy to scan.
+- Ensure each habit is simple (under 5 minutes initially), stacks logically, and grows from easiest to more challenging.
+- Tailor every habit to the user's schedule, environment, motivation, and prior experiences. Do not include filler habits.
+- Maintain a therapist-coach tone that addresses mindset and practical execution equally.
+- Stacking order should start at 1 and increase sequentially without gaps.
 
 CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text before or after the JSON.
 
@@ -139,7 +138,7 @@ Return ONLY this JSON structure with no additional text:
 
 Categories must be one of: health, learning, productivity, mindfulness, fitness, general
 Atomic principles must be from: obvious, attractive, easy, satisfying
-Stacking order should be 1-7 based on logical sequence.`
+Stacking order should mirror the logical sequence of the habit ladder.`
 
 /**
  * Generates clarifying questions based on user's goal
@@ -157,7 +156,7 @@ export async function generateClarifyingQuestions(goal: string): Promise<string[
 
   const userInput = `User's goal: ${goal}
 
-Generate 5-7 clarifying questions to better understand their context and create a personalized habit plan.`
+Identify only the most essential clarifying questions needed to create a personalized habit plan. Default to 2-6 concise, single-line questions and exceed that range only if the goal clearly requires more context.`
 
   try {
     const response = await client.responses.create({
@@ -234,12 +233,14 @@ Generate 5-7 clarifying questions to better understand their context and create 
 export async function generateHabits(
   goal: string, 
   context?: { questions: string[]; answers: string[] }
-): Promise<AIGeneratedHabit[]> {
-  if (!goal || goal.trim().length === 0) {
+): Promise<{ goalAnalysis: string; habits: AIGeneratedHabit[] }> {
+  const normalizedGoal = (goal ?? '').trim()
+
+  if (!normalizedGoal) {
     throw new OpenAIServiceError('Goal cannot be empty', 'AI_ERROR')
   }
 
-  if (goal.length > 500) {
+  if (normalizedGoal.length > 500) {
     throw new OpenAIServiceError('Goal is too long (max 500 characters)', 'AI_ERROR')
   }
 
@@ -256,9 +257,9 @@ export async function generateHabits(
     })
   }
 
-  const userInput = `User's goal: ${goal}${contextString}
+  const userInput = `User's goal: ${normalizedGoal}${contextString}
 
-Generate habit recommendations in JSON format as specified in the instructions. Use the context provided to make the habits highly personalized.`
+Summarize the goal and context in no more than two short paragraphs and generate habit recommendations in JSON exactly as specified. Choose the number of habits based on what will be most impactful (aim for six or fewer unless the context clearly justifies more) and use the provided context to personalize every detail.`
 
   try {
     const response = await client.responses.create({
@@ -323,7 +324,18 @@ Generate habit recommendations in JSON format as specified in the instructions. 
       }
     })
 
-    return habits
+    const goalAnalysis = typeof parsedResponse.goalAnalysis === 'string'
+      ? parsedResponse.goalAnalysis.trim()
+      : ''
+
+    const fallbackGoalAnalysis = normalizedGoal
+      ? `Personalized habit plan for "${normalizedGoal}".`
+      : 'Personalized habit plan.'
+
+    return {
+      goalAnalysis: goalAnalysis || fallbackGoalAnalysis,
+      habits
+    }
 
   } catch (error: any) {
     // Handle specific OpenAI errors

@@ -29,6 +29,7 @@ interface ModalState {
   clarifyingQuestions: string[]
   answers: string[]
   generatedHabits: AIGeneratedHabit[]
+  goalAnalysis: string
   selectedHabitIds: string[]
   error: string | null
   errorCode: ErrorCode | null
@@ -49,6 +50,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     clarifyingQuestions: [],
     answers: [],
     generatedHabits: [],
+    goalAnalysis: '',
     selectedHabitIds: [],
     error: null,
     errorCode: null,
@@ -66,6 +68,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         clarifyingQuestions: [],
         answers: [],
         generatedHabits: [],
+        goalAnalysis: '',
         selectedHabitIds: [],
         error: null,
         errorCode: null,
@@ -112,6 +115,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       ...prev, 
       goal, 
       step: 'loading', 
+      goalAnalysis: '',
       error: null, 
       errorCode: null,
       canRetry: true 
@@ -158,6 +162,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       ...prev, 
       answers,
       step: 'loading', 
+      goalAnalysis: '',
       error: null, 
       errorCode: null 
     }))
@@ -169,6 +174,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     setState(prev => ({ 
       ...prev, 
       step: 'loading', 
+      goalAnalysis: '',
       error: null, 
       errorCode: null 
     }))
@@ -281,6 +287,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         ...prev,
         step: 'review',
         generatedHabits: validHabits,
+        goalAnalysis: typeof data.goalAnalysis === 'string' ? data.goalAnalysis : '',
         selectedHabitIds: allHabitIds,
         error: null,
         errorCode: null
@@ -408,6 +415,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     setState(prev => ({
       ...prev,
       step: 'input',
+      goalAnalysis: '',
       error: null,
       errorCode: null,
       canRetry: true
@@ -502,6 +510,24 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
               {state.step === 'review' && (
                 <div className="space-y-6 animate-fade-in-up">
+                  {/* Goal Analysis */}
+                  {state.goalAnalysis && state.goalAnalysis.trim().length > 0 && (
+                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
+                      <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide mb-2">
+                        Personalized Overview
+                      </h3>
+                      <div className="space-y-2 text-sm text-gray-700">
+                        {state.goalAnalysis
+                          .split(/\n+/)
+                          .map((paragraph) => paragraph.trim())
+                          .filter((paragraph) => paragraph.length > 0)
+                          .map((paragraph, index) => (
+                            <p key={index}>{paragraph}</p>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Habits List */}
                   <div className="space-y-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                     {state.generatedHabits.map((habit, index) => (

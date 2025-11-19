@@ -186,14 +186,14 @@ export async function POST(request: NextRequest) {
     const context = body.context
 
     // Generate habits with retry logic
-    const habits = await withRetry(async () => {
+    const { habits, goalAnalysis } = await withRetry(async () => {
       return await generateHabits(goal, context)
     })
 
     // Format successful response
     const response: GenerateHabitsResponse = {
       habits,
-      goalAnalysis: `Generated ${habits.length} habit${habits.length > 1 ? 's' : ''} for your goal`
+      goalAnalysis
     }
 
     return NextResponse.json(response, { status: 200 })
