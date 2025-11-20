@@ -52,23 +52,23 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Context</p>
-        <h3 className="text-2xl font-semibold text-slate-900">Tell us more about your environment.</h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-xs uppercase tracking-[0.4em] text-[#8A7761]">Context</p>
+        <h3 className="text-2xl font-semibold text-[#1B1917]">Tell us more about your environment.</h3>
+        <p className="text-sm text-[#70665A]">
           These prompts are optional. Share what feels helpful and skip the rest.
         </p>
       </div>
 
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-xs text-[#70665A]">
           <span>Progress</span>
           <span>
             {answeredCount} of {questions.length} answered
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-slate-200">
+        <div className="h-1.5 rounded-full bg-[#E6DED2]">
           <div
-            className="h-full rounded-full bg-slate-900 transition-all duration-300"
+            className="h-full rounded-full bg-[#1B1917] transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
@@ -76,9 +76,9 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {questions.map((question, index) => (
-          <div key={index} className="space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <label htmlFor={`question-${index}`} className="block text-sm font-semibold text-slate-700">
-              <span className="text-slate-400 mr-2">{index + 1}.</span>
+          <div key={index} className="space-y-2 rounded-2xl border border-[#D9D0C0] bg-[#F5EFE6] p-4">
+            <label htmlFor={`question-${index}`} className="block text-sm font-semibold text-[#2C241A]">
+              <span className="text-[#8A7761] mr-2">{index + 1}.</span>
               {question}
             </label>
             <textarea
@@ -88,15 +88,15 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
               disabled={isLoading}
               placeholder="Your answer (optional)..."
               className={`w-full rounded-2xl border ${
-                errors[index] ? 'border-rose-400' : 'border-transparent'
-              } bg-slate-50/60 px-4 py-3 text-sm text-slate-700 focus:border-slate-900/40 focus:outline-none focus:ring-0 disabled:cursor-not-allowed`}
+                errors[index] ? 'border-[#E3C9C4]' : 'border-[#E6DED2]'
+              } bg-[#F9F5EE] px-4 py-3 text-sm text-[#1B1917] focus:border-[#1B1917] focus:outline-none focus:ring-0 disabled:cursor-not-allowed`}
               rows={2}
             />
           </div>
         ))}
 
         {errors.some((e) => e) && (
-          <div className="flex items-center gap-2 text-sm text-rose-600">
+          <div className="flex items-center gap-2 text-sm text-[#8B3A2B]">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -113,15 +113,15 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
             type="button"
             onClick={onSkip}
             disabled={isLoading}
-            className="rounded-[18px] border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors disabled:cursor-not-allowed flex-1"
+            className="rounded-[18px] border border-[#CBBFAE] px-6 py-3 text-sm font-semibold text-[#4F463A] bg-white hover:bg-[#F4ECE1] transition-colors disabled:cursor-not-allowed disabled:opacity-60 flex-1"
           >
             Skip all
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className={`rounded-[18px] px-6 py-3 text-sm font-semibold text-white transition-colors flex-1 ${
-              isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800'
+            className={`rounded-[18px] px-6 py-3 text-sm font-semibold text-white transition-colors flex-1 shadow-[0_18px_45px_rgba(27,25,23,0.25)] ${
+              isLoading ? 'bg-[#BCB3A8] cursor-not-allowed' : 'bg-[#1B1917] hover:bg-black'
             }`}
           >
             {isLoading ? (
@@ -136,7 +136,7 @@ export const ClarifyingQuestionsForm: React.FC<ClarifyingQuestionsFormProps> = (
         </div>
       </form>
 
-      <p className="text-xs text-center text-slate-500">
+      <p className="text-xs text-center text-[#70665A]">
         The more context you include, the more the plan fits into your life.
       </p>
     </div>

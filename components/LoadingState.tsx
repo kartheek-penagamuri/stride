@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect } from 'react'
 
@@ -52,25 +52,25 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 animate-fade-in">
-      <div className="rounded-[32px] border border-slate-200 bg-white/90 p-10 text-center space-y-8 max-w-xl w-full shadow-[0_30px_70px_rgba(15,23,42,0.08)]">
+      <div className="rounded-[32px] border border-[#D9D0C0] bg-[#F9F5EE] p-10 text-center space-y-8 max-w-xl w-full shadow-[0_30px_90px_rgba(17,13,10,0.2)]">
         <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
-          <div className="absolute inset-1 rounded-full border-4 border-slate-300/80 border-t-slate-900 animate-spin" />
-          <div className="h-12 w-12 rounded-full bg-slate-900/10" />
+          <div className="absolute inset-0 rounded-full border-4 border-[#E6DED2]" />
+          <div className="absolute inset-1 rounded-full border-4 border-[#D9D0C0]/80 border-t-[#1B1917] animate-spin" />
+          <div className="h-12 w-12 rounded-full bg-[#F1E9DD]" />
         </div>
 
         <div className="space-y-3">
-          <p className="text-lg font-semibold text-slate-900">{displayMessage}</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-lg font-semibold text-[#1B1917]">{displayMessage}</p>
+          <p className="text-sm text-[#4F463A]">
             Our AI is sketching the cue, action, and reward so you get a thoughtful stack.
           </p>
         </div>
 
         {showTimeout && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-left space-y-1">
-            <p className="text-sm font-semibold text-amber-800">This is taking a bit longer.</p>
-            <p className="text-xs text-amber-700">
-              Stay with us—your goal is safe and we&apos;re finalizing the recommendation.
+          <div className="rounded-2xl border border-[#E6D1A5] bg-[#F9F3E4] p-4 text-left space-y-1">
+            <p className="text-sm font-semibold text-[#5E513F]">This is taking a bit longer.</p>
+            <p className="text-xs text-[#6F5C46]">
+              Stay with us -- your goal is safe and we&apos;re finalizing the recommendation.
             </p>
           </div>
         )}
@@ -79,7 +79,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
           {[0, 150, 300].map((delay) => (
             <span
               key={delay}
-              className="h-1.5 w-8 rounded-full bg-slate-200 animate-pulse"
+              className="h-1.5 w-8 rounded-full bg-[#D9D0C0] animate-pulse"
               style={{ animationDelay: `${delay}ms` }}
             />
           ))}

@@ -61,9 +61,9 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   }
 
   const getCharacterCountColor = () => {
-    if (isOverLimit) return 'text-rose-500'
-    if (characterCount > MAX_CHARACTERS * 0.9) return 'text-amber-500'
-    return 'text-slate-400'
+    if (isOverLimit) return 'text-[#8B3A2B]'
+    if (characterCount > MAX_CHARACTERS * 0.9) return 'text-[#B05A2C]'
+    return 'text-[#6F5C46]'
   }
 
   return (
@@ -71,8 +71,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Goal statement</p>
-            <p className="text-sm text-slate-500">Write as if you were explaining it to a friend.</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-[#8A7761]">Goal statement</p>
+            <p className="text-sm text-[#70665A]">Write as if you were explaining it to a friend.</p>
           </div>
           <span className={`text-xs font-semibold ${getCharacterCountColor()}`}>
             {characterCount} / {MAX_CHARACTERS}
@@ -80,7 +80,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         </div>
         <div
           className={`rounded-2xl border ${
-            error ? 'border-rose-400 shadow-[0_0_0_1px_rgba(244,63,94,0.4)]' : 'border-slate-200'
+            error ? 'border-[#E3C9C4] shadow-[0_0_0_1px_rgba(139,58,43,0.25)]' : 'border-[#D9D0C0]'
           } bg-white/80 transition-colors`}
         >
           <textarea
@@ -89,23 +89,23 @@ export const GoalForm: React.FC<GoalFormProps> = ({
             onChange={handleChange}
             disabled={isLoading}
             placeholder="Example: I want consistent, energizing movement in the morning without adding stress to my schedule."
-            className="w-full bg-transparent px-4 py-4 rounded-2xl text-base leading-relaxed text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:cursor-not-allowed"
+            className="w-full bg-transparent px-4 py-4 rounded-2xl text-base leading-relaxed text-[#1B1917] focus:outline-none focus:ring-2 focus:ring-[#1B1917]/10 disabled:cursor-not-allowed"
             rows={6}
             maxLength={MAX_CHARACTERS + 50}
           />
         </div>
-        <div className="flex justify-between text-xs text-slate-500">
+        <div className="flex justify-between text-xs text-[#70665A]">
           <span>
             {isUnderMinimum && (
-              <span className="text-amber-600">
+              <span className="text-[#B05A2C]">
                 {MIN_CHARACTERS - characterCount} more characters to unlock precise suggestions
               </span>
             )}
           </span>
-          {isOverLimit && <span className="text-rose-500">Please trim your goal for clarity.</span>}
+          {isOverLimit && <span className="text-[#8B3A2B]">Please trim your goal for clarity.</span>}
         </div>
         {error && (
-          <div className="flex items-center gap-2 text-sm text-rose-600">
+          <div className="flex items-center gap-2 text-sm text-[#8B3A2B]">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -121,10 +121,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       <button
         type="submit"
         disabled={isLoading || isOverLimit}
-        className={`w-full rounded-[18px] py-4 px-6 text-base font-semibold tracking-tight text-white transition-all ${
-          isLoading || isOverLimit
-            ? 'bg-slate-400 cursor-not-allowed'
-            : 'bg-slate-900 hover:bg-slate-800'
+        className={`w-full rounded-[18px] py-4 px-6 text-base font-semibold tracking-tight text-white transition-all shadow-[0_18px_45px_rgba(27,25,23,0.25)] ${
+          isLoading || isOverLimit ? 'bg-[#BCB3A8] cursor-not-allowed' : 'bg-[#1B1917] hover:bg-black'
         }`}
       >
         {isLoading ? (
@@ -137,7 +135,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         )}
       </button>
 
-      <p className="text-xs text-center text-slate-500">
+      <p className="text-xs text-center text-[#70665A]">
         Your words stay private and only help us craft a plan rooted in the four laws.
       </p>
     </form>

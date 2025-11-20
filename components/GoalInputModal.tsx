@@ -47,6 +47,8 @@ const TIMELINE_STEPS: Array<{ id: TimelineStage; title: string; description: str
   { id: 'review', title: 'Curate stack', description: 'Approve the rituals that resonate.' }
 ]
 
+const HABIT_GENERATION_TIMEOUT_MS = 90000
+
 const isGenerateHabitsResponse = (payload: unknown): payload is GenerateHabitsResponse => {
   if (!payload || typeof payload !== 'object') {
     return false
@@ -74,7 +76,7 @@ const STEP_COPY: Record<ModalStep, { title: string; description: string }> = {
     description: 'Select the rituals that belong on your dashboard.'
   },
   error: {
-    title: 'Let’s adjust',
+    title: "Let's adjust",
     description: 'Something interrupted the flow. Your input is still safe.'
   },
   success: {
@@ -228,6 +230,9 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   }
 
   const generateHabitsWithContext = async (answers: string[]) => {
+    const controller = new AbortController()
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
     try {
       // Build context if answers provided
       const context = answers.length > 0 && answers.some(a => a.trim().length > 0)
@@ -236,6 +241,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
             answers: answers
           }
         : undefined
+
+      timeoutId = setTimeout(() => controller.abort(), HABIT_GENERATION_TIMEOUT_MS)
 
       const response = await fetch('/api/ai/generate-habits', {
         method: 'POST',
@@ -246,8 +253,12 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
           goal: state.goal,
           context 
         }),
-        signal: AbortSignal.timeout(35000) // 35 second timeout
+        signal: controller.signal
       })
+
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
 
       let data: GenerateHabitsResponse | ErrorResponse
       try {
@@ -349,6 +360,10 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         errorCode: null
       }))
     } catch (error) {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+
       console.error('Error generating habits:', error)
       
       let errorMessage: string = ERROR_MESSAGES.GENERIC
@@ -509,12 +524,18 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   const currentCopy = STEP_COPY[state.step]
 
   const renderTimeline = (variant: 'dark' | 'light') => {
-    const titleClass = variant === 'dark' ? 'text-white' : 'text-slate-900'
-    const descriptionClass = variant === 'dark' ? 'text-white/70' : 'text-slate-500'
-    const optionalClass = variant === 'dark' ? 'text-white/50' : 'text-slate-400'
-    const circleBase = variant === 'dark' ? 'border-white/40 text-white/60' : 'border-slate-200 text-slate-400'
-    const circleComplete = variant === 'dark' ? 'bg-white/20 text-white border-white/20' : 'bg-slate-100 text-slate-600 border-slate-100'
-    const circleActive = variant === 'dark' ? 'bg-white text-slate-900 border-white' : 'bg-slate-900 text-white border-slate-900'
+    const titleClass = 'text-[#2C241A]'
+    const descriptionClass = variant === 'dark' ? 'text-[#6F5C46]' : 'text-[#70665A]'
+    const optionalClass = 'text-[#A28D74]'
+    const circleBase =
+      variant === 'dark'
+        ? 'border-[#D4C6B5] text-[#A28D74] bg-transparent'
+        : 'border-[#E3D8C7] text-[#9C8B75] bg-white'
+    const circleComplete =
+      variant === 'dark'
+        ? 'bg-white text-[#1B1917] border-transparent shadow-[0_6px_20px_rgba(38,32,26,0.18)]'
+        : 'bg-[#E6DED2] text-[#1B1917] border-transparent'
+    const circleActive = 'bg-[#1B1917] text-white border-[#1B1917]'
 
     return (
       <ol className="space-y-5">
@@ -551,33 +572,36 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 animate-fade-in"
+        className="fixed inset-0 bg-[#0B0704]/70 backdrop-blur-md z-40 animate-fade-in"
         onClick={handleClose}
         aria-hidden="true"
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10">
         <div
-          className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/40 bg-white/95 shadow-[0_40px_100px_rgba(15,23,42,0.25)] grid lg:grid-cols-[260px,1fr]"
+          className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-[#D9D0C0] bg-[#F9F5EE] shadow-[0_45px_100px_rgba(17,13,10,0.25)] grid lg:grid-cols-[280px,1fr]"
           onClick={(e) => e.stopPropagation()}
         >
-          <aside className="hidden lg:flex flex-col gap-8 bg-slate-900 text-white p-8">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.5em] text-white/60">Atomic Habits</p>
-              <p className="text-xl font-semibold">Habit Composer</p>
-              <p className="text-sm text-white/70">Three quiet beats from intention to action.</p>
+          <aside className="hidden lg:flex flex-col gap-8 bg-[#F1E9DD] text-[#1B1917] p-8 border-r border-[#D9D0C0] relative overflow-hidden">
+            <div className="absolute -top-8 -right-10 h-32 w-32 rounded-full bg-[#E6DED2] blur-3xl" aria-hidden="true" />
+            <div className="absolute -bottom-10 -left-12 h-40 w-40 rounded-full bg-[#EFE7DA] blur-3xl" aria-hidden="true" />
+            <div className="space-y-2 relative">
+              <p className="text-xs uppercase tracking-[0.45em] text-[#8A7761]">Stride flow</p>
+              <p className="text-xl font-semibold text-[#1B1917]">Habit Composer</p>
+              <p className="text-sm text-[#574B3D]">Three gentle passes from intention to action.</p>
             </div>
-            {renderTimeline('dark')}
-            <div className="mt-auto space-y-1 text-sm text-white/70">
-              <p>Need a breather? You can close this flow and return without losing your goal.</p>
+            <div className="relative">{renderTimeline('dark')}</div>
+            <div className="mt-auto space-y-1 text-sm text-[#6F5C46] relative">
+              <p>Need a pause? Close this flow and come back without losing your goal.</p>
+              <p className="text-xs uppercase tracking-[0.4em] text-[#8A7761]">Calm, human, grounded.</p>
             </div>
           </aside>
 
-          <div className="relative bg-white">
+          <div className="relative bg-transparent">
             {state.step !== 'loading' && state.step !== 'success' && (
               <button
                 onClick={handleClose}
                 disabled={state.isSubmitting}
-                className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-6 top-6 text-[#7C6B55] hover:text-[#1B1917] transition-colors"
                 aria-label="Close modal"
               >
                 <svg className="w-6 h-6" viewBox="0 0 24 24" stroke="currentColor" fill="none">
@@ -586,13 +610,13 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
               </button>
             )}
 
-            <div className="lg:hidden border-b border-slate-100 p-6">{renderTimeline('light')}</div>
+            <div className="lg:hidden border-b border-[#E6DED2] bg-[#F7F2EA] p-6 rounded-t-[24px]">{renderTimeline('light')}</div>
 
             <div className="max-h-[80vh] overflow-y-auto p-6 sm:p-10 custom-scrollbar">
-              <div className="space-y-3 pb-6 border-b border-slate-100">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Step</p>
-                <h2 className="text-2xl font-semibold text-slate-900">{currentCopy.title}</h2>
-                <p className="text-sm text-slate-500 max-w-2xl">{currentCopy.description}</p>
+              <div className="space-y-3 pb-6 border-b border-[#E6DED2]">
+                <p className="text-xs uppercase tracking-[0.4em] text-[#8A7761]">Step</p>
+                <h2 className="text-2xl font-semibold text-[#1B1917]">{currentCopy.title}</h2>
+                <p className="text-sm text-[#4F463A] max-w-2xl">{currentCopy.description}</p>
               </div>
 
               <div className="pt-6 space-y-8">
@@ -614,9 +638,9 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                 {state.step === 'review' && (
                   <div className="space-y-6">
                     {state.goalAnalysis && state.goalAnalysis.trim().length > 0 && (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 space-y-2">
-                        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Personalized overview</p>
-                        <div className="space-y-2 text-sm text-slate-600">
+                      <div className="rounded-2xl border border-[#D9D0C0] bg-[#F4EEE3] p-6 space-y-2">
+                        <p className="text-xs uppercase tracking-[0.4em] text-[#8A7761]">Personalized overview</p>
+                        <div className="space-y-2 text-sm text-[#4F463A]">
                           {state.goalAnalysis
                             .split(/\n+/)
                             .map((paragraph) => paragraph.trim())
@@ -628,7 +652,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                       </div>
                     )}
 
-                    <div className="space-y-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-4">
                       {state.generatedHabits.map((habit) => (
                         <HabitReviewCard
                           key={habit.id}
@@ -640,7 +664,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                     </div>
 
                     {state.error && (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700">
+                      <div className="rounded-2xl border border-[#E3C9C4] bg-[#FAF2F0] p-4 text-sm text-[#8B3A2B]">
                         {state.error}
                       </div>
                     )}
@@ -649,17 +673,17 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                       <button
                         onClick={handleClose}
                         disabled={state.isSubmitting}
-                        className="flex-1 rounded-[18px] border border-slate-300 px-6 py-4 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors disabled:cursor-not-allowed"
+                        className="flex-1 rounded-[18px] border border-[#CBBFAE] px-6 py-4 text-sm font-semibold text-[#4F463A] bg-white hover:bg-[#F4ECE1] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleAddHabits}
                         disabled={state.isSubmitting || state.selectedHabitIds.length === 0}
-                        className={`flex-1 rounded-[18px] px-6 py-4 text-sm font-semibold text-white transition-colors ${
+                        className={`flex-1 rounded-[18px] px-6 py-4 text-sm font-semibold text-white transition-colors shadow-[0_18px_45px_rgba(27,25,23,0.25)] ${
                           state.isSubmitting || state.selectedHabitIds.length === 0
-                            ? 'bg-slate-400 cursor-not-allowed'
-                            : 'bg-slate-900 hover:bg-slate-800'
+                            ? 'bg-[#BCB3A8] cursor-not-allowed'
+                            : 'bg-[#1B1917] hover:bg-black'
                         }`}
                       >
                         {state.isSubmitting ? (
@@ -677,8 +701,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
                 {state.step === 'error' && (
                   <div className="space-y-6">
-                    <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-6 space-y-2">
-                      <p className="text-lg font-semibold text-rose-900">
+                    <div className="rounded-2xl border border-[#E3C9C4] bg-[#FAF1EF] p-6 space-y-2">
+                      <p className="text-lg font-semibold text-[#53291E]">
                         {state.errorCode === ERROR_CODES.RATE_LIMIT
                           ? 'Too many requests'
                           : state.errorCode === ERROR_CODES.NETWORK_ERROR
@@ -687,35 +711,35 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                           ? 'Invalid input'
                           : 'Something went wrong'}
                       </p>
-                      <p className="text-sm text-rose-700">{state.error || ERROR_MESSAGES.GENERIC}</p>
+                      <p className="text-sm text-[#7C4C34]">{state.error || ERROR_MESSAGES.GENERIC}</p>
                       {state.errorCode && (
-                        <p className="text-xs text-rose-600 uppercase tracking-[0.4em]">Code: {state.errorCode}</p>
+                        <p className="text-xs text-[#8B3A2B] uppercase tracking-[0.4em]">Code: {state.errorCode}</p>
                       )}
                     </div>
 
                     {state.errorCode === ERROR_CODES.RATE_LIMIT && (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-800">
+                      <div className="rounded-2xl border border-[#E6D1A5] bg-[#F9F3E4] p-4 text-sm text-[#5E513F]">
                         Tip: pause for a minute before trying again so we can keep the experience smooth for everyone.
                       </div>
                     )}
 
                     {state.errorCode === ERROR_CODES.NETWORK_ERROR && (
-                      <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-800">
-                        Tip: check your connection and retry whenever you&rsquo;re ready. Your goal text is still here.
+                      <div className="rounded-2xl border border-[#CBBFAE] bg-[#F3EFE9] p-4 text-sm text-[#4F463A]">
+                        Tip: check your connection and retry whenever you&apos;re ready. Your goal text is still here.
                       </div>
                     )}
 
                     <div className="flex flex-col gap-3 sm:flex-row">
                       <button
                         onClick={handleClose}
-                        className="flex-1 rounded-[18px] border border-slate-300 px-6 py-4 text-sm font-semibold text-slate-700 hover:border-slate-500 transition-colors"
+                        className="flex-1 rounded-[18px] border border-[#D9D0C0] px-6 py-4 text-sm font-semibold text-[#4F463A] bg-white hover:bg-[#F4ECE1] transition-colors"
                       >
                         Close
                       </button>
                       {state.canRetry && (
                         <button
                           onClick={handleRetry}
-                          className="flex-1 rounded-[18px] bg-slate-900 px-6 py-4 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+                          className="flex-1 rounded-[18px] bg-[#1B1917] px-6 py-4 text-sm font-semibold text-white hover:bg-black transition-colors shadow-[0_18px_45px_rgba(27,25,23,0.25)]"
                         >
                           Try again
                         </button>
@@ -726,14 +750,14 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
                 {state.step === 'success' && (
                   <div className="space-y-6 text-center">
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 space-y-2">
-                      <p className="text-lg font-semibold text-emerald-900">Habits added successfully</p>
-                      <p className="text-sm text-emerald-800">
+                    <div className="rounded-2xl border border-[#B9D5C6] bg-[#ECF4EF] p-6 space-y-2">
+                      <p className="text-lg font-semibold text-[#1F2E24]">Habits added successfully</p>
+                      <p className="text-sm text-[#1F2E24]">
                         {state.savedHabitsCount} habit{state.savedHabitsCount !== 1 ? 's have' : ' has'} been saved to your dashboard. Opening it now.
                       </p>
                     </div>
                     <div className="flex items-center justify-center">
-                      <span className="h-10 w-10 rounded-full border-2 border-emerald-300 border-t-emerald-600 animate-spin" />
+                      <span className="h-10 w-10 rounded-full border-2 border-[#D1E7DC] border-t-[#1F2E24] animate-spin" />
                     </div>
                   </div>
                 )}
