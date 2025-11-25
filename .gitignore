@@ -122,7 +122,6 @@ public
 # IDEs and editors
 .vscode/
 .idea/
-.kiro/
 *.swp
 *.swo
 *~
