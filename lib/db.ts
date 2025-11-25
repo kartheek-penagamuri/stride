@@ -360,6 +360,15 @@ export async function findUserByEmail(email: string): Promise<DbUser | null> {
   }
 }
 
+export async function findUserById(id: number): Promise<DbUser | null> {
+  try {
+    const user = get<DbUser>('SELECT * FROM users WHERE id = ? LIMIT 1', [id])
+    return user || null
+  } catch (error) {
+    throw handleDatabaseError(error, 'findUserById')
+  }
+}
+
 /**
  * Insert a new user into the database
  * @param params User data including email, passwordHash, and optional name

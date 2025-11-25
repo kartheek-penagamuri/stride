@@ -5,6 +5,7 @@ import {
   DbHabit,
   ensureHabitsTable,
   ensureUsersTable,
+  findUserById,
   listHabitsForUser
 } from '@/lib/db'
 
@@ -22,14 +23,24 @@ function toClientHabit(habit: DbHabit) {
   }
 }
 
+function unauthorizedResponse(message = 'Unauthorized') {
+  const response = NextResponse.json({ error: message }, { status: 401 })
+  response.cookies.delete('stride_user')
+  return response
+}
+
 export async function GET() {
   try {
     const user = getAuthUserFromCookies()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return unauthorizedResponse()
     }
 
     await ensureUsersTable()
+    const dbUser = await findUserById(user.id)
+    if (!dbUser) {
+      return unauthorizedResponse('User not found')
+    }
     await ensureHabitsTable()
 
     const habits = await listHabitsForUser(user.id)
@@ -44,10 +55,14 @@ export async function POST(request: NextRequest) {
   try {
     const user = getAuthUserFromCookies()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return unauthorizedResponse()
     }
 
     await ensureUsersTable()
+    const dbUser = await findUserById(user.id)
+    if (!dbUser) {
+      return unauthorizedResponse('User not found')
+    }
     await ensureHabitsTable()
 
     const body = await request.json()
