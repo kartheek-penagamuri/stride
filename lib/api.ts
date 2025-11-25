@@ -85,6 +85,7 @@ export const habitApi = {
   createBulk: async (habits: CreateHabitRequest[]): Promise<ApiResponse<{ habits: Habit[] }>> => {
     const savedHabits: Habit[] = []
     const errors: string[] = []
+    let isUnauthorized = false
 
     for (const habit of habits) {
       const result = await apiRequest<{ habit: Habit }>('/habits', {
@@ -93,10 +94,21 @@ export const habitApi = {
       })
 
       if (result.error) {
+        // Check if this is an authentication error
+        if (result.error.toLowerCase().includes('unauthorized') || 
+            result.error.toLowerCase().includes('not authenticated')) {
+          isUnauthorized = true
+          break
+        }
         errors.push(result.error)
       } else if (result.data?.habit) {
         savedHabits.push(result.data.habit)
       }
+    }
+
+    // If unauthorized, return that error immediately
+    if (isUnauthorized) {
+      return { error: 'Unauthorized - Please log in to save your habits' }
     }
 
     if (errors.length > 0 && savedHabits.length === 0) {

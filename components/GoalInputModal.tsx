@@ -6,6 +6,7 @@ import { GoalForm } from './GoalForm'
 import { ClarifyingQuestionsForm } from './ClarifyingQuestionsForm'
 import { LoadingState } from './LoadingState'
 import { HabitReviewCard } from './HabitReviewCard'
+import { AuthForm } from './AuthForm'
 import { AIGeneratedHabit, CreateHabitRequest, Habit, ErrorResponse, ErrorCode, GenerateHabitsResponse } from '@/lib/types'
 import { habitApi, aiApi } from '@/lib/api'
 import {
@@ -20,7 +21,7 @@ interface GoalInputModalProps {
   onHabitsAdded?: (habits: Habit[]) => void
 }
 
-type ModalStep = 'input' | 'questions' | 'loading' | 'review' | 'error' | 'success'
+type ModalStep = 'input' | 'questions' | 'loading' | 'review' | 'error' | 'success' | 'login'
 
 interface ModalState {
   step: ModalStep
@@ -35,6 +36,7 @@ interface ModalState {
   isSubmitting: boolean
   savedHabitsCount: number
   canRetry: boolean
+  pendingHabitsToSave: CreateHabitRequest[]
 }
 
 type TimelineStage = 'input' | 'questions' | 'review'
@@ -82,6 +84,10 @@ const STEP_COPY: Record<ModalStep, { title: string; description: string }> = {
   success: {
     title: 'Habits added',
     description: 'We saved them to your dashboard and will redirect shortly.'
+  },
+  login: {
+    title: 'Sign in to save your habits',
+    description: 'Create an account or sign in to keep your rituals safe.'
   }
 }
 
@@ -103,7 +109,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     errorCode: null,
     isSubmitting: false,
     savedHabitsCount: 0,
-    canRetry: true
+    canRetry: true,
+    pendingHabitsToSave: []
   })
 
   // Reset modal state when closed
@@ -121,7 +128,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         errorCode: null,
         isSubmitting: false,
         savedHabitsCount: 0,
-        canRetry: true
+        canRetry: true,
+        pendingHabitsToSave: []
       })
     }
   }, [isOpen])
@@ -429,6 +437,19 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       const result = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>
 
       if (result.error) {
+        // Check if error is due to authentication
+        if (result.error.toLowerCase().includes('unauthorized') || result.error.toLowerCase().includes('not authenticated')) {
+          // Store habits to save after login
+          setState(prev => ({
+            ...prev,
+            step: 'login',
+            isSubmitting: false,
+            pendingHabitsToSave: selectedHabits,
+            error: null,
+            errorCode: null
+          }))
+          return
+        }
         throw new Error(result.error)
       }
 
@@ -445,7 +466,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         isSubmitting: false,
         savedHabitsCount: savedHabits.length,
         error: null,
-        errorCode: null
+        errorCode: null,
+        pendingHabitsToSave: []
       }))
 
       // Call callback if provided
@@ -491,6 +513,86 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       errorCode: null,
       canRetry: true
     }))
+  }
+
+  const handleLoginSuccess = async () => {
+    // After successful login, retry saving the pending habits
+    if (state.pendingHabitsToSave.length === 0) {
+      // No pending habits, just go to review
+      setState(prev => ({
+        ...prev,
+        step: 'review',
+        error: null,
+        errorCode: null
+      }))
+      return
+    }
+
+    setState(prev => ({ ...prev, isSubmitting: true, error: null, errorCode: null }))
+
+    try {
+      // Save habits using bulk API function with timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Save timeout')), 30000)
+      )
+
+      const savePromise = habitApi.createBulk(state.pendingHabitsToSave)
+
+      const result = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      const savedHabits = result.data?.habits || []
+
+      if (savedHabits.length === 0) {
+        throw new Error('No habits were saved')
+      }
+
+      // Show success state
+      setState(prev => ({
+        ...prev,
+        step: 'success',
+        isSubmitting: false,
+        savedHabitsCount: savedHabits.length,
+        error: null,
+        errorCode: null,
+        pendingHabitsToSave: []
+      }))
+
+      // Call callback if provided
+      if (onHabitsAdded) {
+        onHabitsAdded(savedHabits)
+      }
+
+      // Redirect to dashboard after showing success message
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1500)
+
+    } catch (error) {
+      console.error('Error saving habits after login:', error)
+
+      let errorMessage: string = ERROR_MESSAGES.SAVE_FAILED
+      let errorCode: ErrorCode = ERROR_CODES.SERVER_ERROR
+
+      if (error instanceof Error && error.message?.includes('timeout')) {
+        errorMessage = ERROR_MESSAGES.TIMEOUT
+        errorCode = ERROR_CODES.TIMEOUT
+      } else if (error instanceof Error && (error.message?.includes('network') || error.message?.includes('fetch'))) {
+        errorMessage = ERROR_MESSAGES.CONNECTION_ERROR
+        errorCode = ERROR_CODES.NETWORK_ERROR
+      }
+
+      setState(prev => ({
+        ...prev,
+        step: 'review',
+        isSubmitting: false,
+        error: errorMessage,
+        errorCode: errorCode
+      }))
+    }
   }
 
   const getActiveStage = (): TimelineStage => {
@@ -596,11 +698,11 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
           </aside>
 
           <div className="relative bg-transparent">
-            {state.step !== 'loading' && state.step !== 'success' && (
+            {state.step !== 'success' && (
               <button
                 onClick={handleClose}
-                disabled={state.isSubmitting}
-                className="absolute right-6 top-6 text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                disabled={state.isSubmitting || state.step === 'loading'}
+                className="absolute right-6 top-6 text-[var(--muted)] hover:text-[var(--ink)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed z-10"
                 aria-label="Close modal"
               >
                 <svg className="w-6 h-6" viewBox="0 0 24 24" stroke="currentColor" fill="none">
@@ -756,6 +858,29 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                     </div>
                     <div className="flex items-center justify-center">
                       <span className="h-10 w-10 rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)] animate-spin" />
+                    </div>
+                  </div>
+                )}
+
+                {state.step === 'login' && (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] p-4 space-y-2">
+                      <p className="text-sm font-semibold text-[var(--accent-strong)]">Almost there!</p>
+                      <p className="text-sm text-[var(--accent-strong)]">
+                        Sign in or create an account to save your {state.selectedHabitIds.length} habit{state.selectedHabitIds.length !== 1 ? 's' : ''}.
+                        Your selections will be saved automatically after you log in.
+                      </p>
+                    </div>
+
+                    <AuthForm onSuccess={handleLoginSuccess} redirectTo="/dashboard" />
+
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => setState(prev => ({ ...prev, step: 'review', pendingHabitsToSave: [] }))}
+                        className="text-sm text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                      >
+                        Go back to review
+                      </button>
                     </div>
                   </div>
                 )}
