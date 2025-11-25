@@ -89,6 +89,9 @@ This application requires environment variables to be configured in a `.env.loca
 | `OPENAI_MAX_TOKENS` | Maximum tokens for AI responses | `2000` |
 | `OPENAI_TEMPERATURE` | AI creativity level (0-1) | `0.7` |
 | `NEXT_PUBLIC_APP_URL` | Application URL | `http://localhost:3000` |
+| `SQLITE_DB_PATH` | Absolute/relative path where the SQLite file should live | `stride.db` (or `/tmp/stride.db` on Vercel) |
+| `SQLITE_DB_DIRECTORY` | Folder that should contain the database file (filename still defaults to `stride.db`) | project root |
+| `SQLITE_DB_FILENAME` | Override the database file name without changing its directory | `stride.db` |
 
 ### Getting an OpenAI API Key
 
@@ -172,6 +175,10 @@ chmod +x backup.sh
 - Back up your database regularly, especially before updates
 - Store backups in a secure location separate from your application
 - Consider cloud backup solutions for production deployments
+
+### Deploying on Vercel
+
+Vercel serverless functions run on a read-only filesystem, so the application now automatically falls back to storing the SQLite file in `/tmp/stride.db` when `process.env.VERCEL` is detected. The `/tmp` directory is writable but **ephemeral**, meaning the data can be wiped whenever the function container is recycled. For anything beyond quick demos you should configure `SQLITE_DB_PATH`/`SQLITE_DB_DIRECTORY` to point at a persistent mounted volume or, preferably, migrate to a hosted database service (e.g., Vercel Postgres, Neon, PlanetScale). Add those environment variables in the Vercel dashboard so each deployment knows where to place the database file.
 
 ## Project Structure
 

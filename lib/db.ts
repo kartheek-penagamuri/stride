@@ -1,7 +1,11 @@
 import Database from 'better-sqlite3'
+import fs from 'fs'
+import path from 'path'
 
 let db: Database.Database | null = null
 let isInitialized = false
+const DEFAULT_DB_FILENAME = process.env.SQLITE_DB_FILENAME || 'stride.db'
+const DB_FILE_PATH = resolveDatabaseFilePath()
 
 /**
  * Custom error class for database operations
@@ -43,6 +47,34 @@ export const ERROR_MESSAGES = {
   NOT_NULL_VIOLATION: 'Required field is missing',
   CONSTRAINT_VIOLATION: 'Database constraint violation'
 } as const
+
+function resolveDatabaseFilePath(): string {
+  if (process.env.SQLITE_DB_PATH) {
+    return resolveWorkspacePath(process.env.SQLITE_DB_PATH)
+  }
+
+  if (process.env.SQLITE_DB_DIRECTORY) {
+    return path.join(resolveWorkspacePath(process.env.SQLITE_DB_DIRECTORY), DEFAULT_DB_FILENAME)
+  }
+
+  const defaultDirectory = process.env.VERCEL ? '/tmp' : process.cwd()
+  return path.join(defaultDirectory, DEFAULT_DB_FILENAME)
+}
+
+function resolveWorkspacePath(targetPath: string): string {
+  return path.isAbsolute(targetPath) ? targetPath : path.resolve(process.cwd(), targetPath)
+}
+
+function ensureDatabaseDirectoryExists(): void {
+  const directory = path.dirname(DB_FILE_PATH)
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true })
+  }
+}
+
+export function getDatabaseFilePath(): string {
+  return DB_FILE_PATH
+}
 
 /**
  * Map SQLite errors to DatabaseError with descriptive messages
@@ -177,12 +209,13 @@ export function getDatabase(): Database.Database {
   if (!db) {
     try {
       // Initialize SQLite database file
-      db = new Database('stride.db')
+      ensureDatabaseDirectoryExists()
+      db = new Database(DB_FILE_PATH)
 
       // Enable foreign key constraints
       db.pragma('foreign_keys = ON')
 
-      console.log('SQLite database initialized: stride.db')
+      console.log(`SQLite database initialized: ${DB_FILE_PATH}`)
 
       // Call initializeDatabase() on first getDatabase() call
       // Ensure tables exist before any operations

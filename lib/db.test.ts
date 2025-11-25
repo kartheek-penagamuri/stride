@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import { findUserByEmail, insertUser, closeDatabase, getDatabase } from './db'
+import { findUserByEmail, insertUser, closeDatabase, getDatabase, getDatabaseFilePath } from './db'
 import fs from 'fs'
 
 // Helper function to delete database file with retries for Windows file locking
 function deleteDbFile() {
-  if (!fs.existsSync('stride.db')) return
+  const dbFilePath = getDatabaseFilePath()
+  if (!fs.existsSync(dbFilePath)) return
   
   try {
-    fs.unlinkSync('stride.db')
+    fs.unlinkSync(dbFilePath)
   } catch {
     // If file is still locked, wait a bit and try again
     const maxRetries = 5
@@ -16,7 +17,7 @@ function deleteDbFile() {
         // Wait 100ms
         const start = Date.now()
         while (Date.now() - start < 100) {}
-        fs.unlinkSync('stride.db')
+        fs.unlinkSync(dbFilePath)
         return
       } catch {
         if (i === maxRetries - 1) {
