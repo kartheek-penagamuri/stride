@@ -167,3 +167,4 @@ coverage/
 
 # Build tools
 .swc/
+tmp.bin

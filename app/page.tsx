@@ -32,7 +32,6 @@ export default function HomePage() {
   const navItems = [
     { label: 'How it Works', href: '#how-it-works' },
     { label: 'Benefits', href: '#benefits' },
-    { label: 'Pricing', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
   ]
 
@@ -150,9 +149,7 @@ export default function HomePage() {
                     View Dashboard
                   </button>
                 </div>
-                <p className="mt-4 text-sm text-[var(--muted)]">
-                  No credit card required · Free forever plan available
-                </p>
+
               </div>
 
               <div className="relative lg:ml-auto">
@@ -330,66 +327,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="py-24 bg-[var(--page-bg)]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-[var(--ink)] sm:text-4xl mb-4">
-                Simple, transparent pricing.
-              </h2>
-              <p className="text-[var(--muted)]">Invest in your peace of mind.</p>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {/* Free Tier */}
-              <div className="p-8 rounded-3xl bg-white border border-[var(--border)] shadow-sm">
-                <h3 className="text-xl font-semibold text-[var(--ink)] mb-2">Starter</h3>
-                <div className="text-4xl font-bold text-[var(--ink)] mb-6">$0<span className="text-lg font-normal text-[var(--muted)]">/mo</span></div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center gap-3 text-[var(--muted)]">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> 3 Active Goals
-                  </li>
-                  <li className="flex items-center gap-3 text-[var(--muted)]">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> Basic Habit Stacking
-                  </li>
-                  <li className="flex items-center gap-3 text-[var(--muted)]">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> 7-Day History
-                  </li>
-                </ul>
-                <button
-                  onClick={() => setIsGoalModalOpen(true)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--page-bg)] transition-colors"
-                >
-                  Start for Free
-                </button>
-              </div>
-
-              {/* Pro Tier */}
-              <div className="p-8 rounded-3xl bg-[var(--ink)] text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-[var(--accent)] text-white text-xs font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-                <h3 className="text-xl font-semibold mb-2">Pro</h3>
-                <div className="text-4xl font-bold mb-6">$9<span className="text-lg font-normal text-gray-400">/mo</span></div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> Unlimited Goals
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> Advanced AI Coaching
-                  </li>
-                  <li className="flex items-center gap-3 text-gray-300">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--accent)]" /> Unlimited History & Trends
-                  </li>
-                </ul>
-                <button
-                  onClick={() => setIsGoalModalOpen(true)}
-                  className="w-full rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors"
-                >
-                  Get Pro
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* FAQ */}
         <section id="faq" className="py-24 bg-white border-t border-[var(--border)]">
