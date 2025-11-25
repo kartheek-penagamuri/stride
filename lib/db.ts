@@ -53,10 +53,10 @@ export const ERROR_MESSAGES = {
 function handleDatabaseError(error: any, context?: string): DatabaseError {
   const errorMessage = error.message || ''
   const errorCode = error.code || ''
-  
+
   // Log the error for debugging
   console.error('Database error:', errorMessage, context ? `(${context})` : '')
-  
+
   // Handle unique constraint violations
   if (errorCode === 'SQLITE_CONSTRAINT_UNIQUE' || errorMessage.includes('UNIQUE constraint failed')) {
     if (errorMessage.includes('users.email')) {
@@ -64,32 +64,32 @@ function handleDatabaseError(error: any, context?: string): DatabaseError {
     }
     return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.UNIQUE_CONSTRAINT, error)
   }
-  
+
   // Handle foreign key violations
   if (errorCode === 'SQLITE_CONSTRAINT_FOREIGNKEY' || errorMessage.includes('FOREIGN KEY constraint failed')) {
     return new DatabaseError(ERROR_MESSAGES.FOREIGN_KEY_VIOLATION, ERROR_CODES.FOREIGN_KEY, error)
   }
-  
+
   // Handle not null violations
   if (errorCode === 'SQLITE_CONSTRAINT_NOTNULL' || errorMessage.includes('NOT NULL constraint failed')) {
     return new DatabaseError(ERROR_MESSAGES.NOT_NULL_VIOLATION, ERROR_CODES.NOT_NULL, error)
   }
-  
+
   // Handle general constraint violations
   if (errorCode === 'SQLITE_CONSTRAINT' || errorMessage.includes('constraint')) {
     return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.CONSTRAINT, error)
   }
-  
+
   // Handle database locked errors
   if (errorCode === 'SQLITE_BUSY' || errorMessage.includes('database is locked')) {
     return new DatabaseError(ERROR_MESSAGES.DATABASE_LOCKED, ERROR_CODES.LOCKED, error)
   }
-  
+
   // Handle file access errors
   if (errorCode === 'SQLITE_CANTOPEN' || errorMessage.includes('unable to open database')) {
     return new DatabaseError(ERROR_MESSAGES.FILE_ACCESS, ERROR_CODES.FILE_ACCESS, error)
   }
-  
+
   // Default error
   return new DatabaseError(errorMessage || 'Database operation failed', ERROR_CODES.UNKNOWN, error)
 }
@@ -102,11 +102,11 @@ function initializeDatabase(): void {
   if (isInitialized) {
     return
   }
-  
+
   try {
     // Directly create tables without calling the async wrapper functions
     // to avoid circular dependency with getDatabase()
-    
+
     // Create users table
     db!.prepare(`
       CREATE TABLE IF NOT EXISTS users (
@@ -118,9 +118,9 @@ function initializeDatabase(): void {
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `).run()
-    
+
     db!.prepare(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`).run()
-    
+
     // Create habits table
     db!.prepare(`
       CREATE TABLE IF NOT EXISTS habits (
@@ -137,9 +137,9 @@ function initializeDatabase(): void {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `).run()
-    
+
     db!.prepare(`CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id)`).run()
-    
+
     // Create habit_completions table
     db!.prepare(`
       CREATE TABLE IF NOT EXISTS habit_completions (
@@ -152,13 +152,13 @@ function initializeDatabase(): void {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `).run()
-    
+
     db!.prepare(`CREATE INDEX IF NOT EXISTS idx_completions_habit_id ON habit_completions(habit_id)`).run()
     db!.prepare(`CREATE INDEX IF NOT EXISTS idx_completions_user_id ON habit_completions(user_id)`).run()
     db!.prepare(`CREATE INDEX IF NOT EXISTS idx_completions_completed_at ON habit_completions(completed_at)`).run()
-    
+
     isInitialized = true
-    
+
     // Log successful initialization
     console.log('Database schema initialized successfully')
   } catch (error) {
@@ -176,12 +176,12 @@ export function getDatabase(): Database.Database {
     try {
       // Initialize SQLite database file
       db = new Database('stride.db')
-      
+
       // Enable foreign key constraints
       db.pragma('foreign_keys = ON')
-      
+
       console.log('SQLite database initialized: stride.db')
-      
+
       // Call initializeDatabase() on first getDatabase() call
       // Ensure tables exist before any operations
       initializeDatabase()
@@ -189,7 +189,7 @@ export function getDatabase(): Database.Database {
       throw handleDatabaseError(error, 'getDatabase')
     }
   }
-  
+
   return db
 }
 
@@ -268,7 +268,7 @@ export async function ensureUsersTable() {
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `)
-    
+
     run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`)
   } catch (error) {
     throw handleDatabaseError(error, 'ensureUsersTable')
@@ -333,21 +333,21 @@ export async function findUserByEmail(email: string): Promise<DbUser | null> {
 export async function insertUser(params: { email: string; passwordHash: string; name?: string }): Promise<DbUser> {
   try {
     const normalizedEmail = params.email.toLowerCase()
-    
+
     // Insert the user
     const result = run(
       `INSERT INTO users (email, password_hash, name)
        VALUES (?, ?, ?)`,
       [normalizedEmail, params.passwordHash, params.name || null]
     )
-    
+
     // Get the inserted user using last_insert_rowid()
     const insertedUser = get<DbUser>('SELECT * FROM users WHERE id = ?', [result.lastID])
-    
+
     if (!insertedUser) {
       throw new DatabaseError('Failed to retrieve inserted user', ERROR_CODES.UNKNOWN)
     }
-    
+
     return insertedUser
   } catch (error) {
     if (error instanceof DatabaseError) {
@@ -378,7 +378,7 @@ export async function ensureHabitsTable() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `)
-    
+
     run(`CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id)`)
   } catch (error) {
     throw handleDatabaseError(error, 'ensureHabitsTable')
@@ -402,7 +402,7 @@ export async function ensureHabitCompletionsTable() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `)
-    
+
     run(`CREATE INDEX IF NOT EXISTS idx_completions_habit_id ON habit_completions(habit_id)`)
     run(`CREATE INDEX IF NOT EXISTS idx_completions_user_id ON habit_completions(user_id)`)
     run(`CREATE INDEX IF NOT EXISTS idx_completions_completed_at ON habit_completions(completed_at)`)
@@ -462,14 +462,14 @@ export async function createHabitForUser(
        VALUES (?, ?, ?, ?)`,
       [userId, params.title, params.description, params.category || 'general']
     )
-    
+
     // Get the inserted habit using last_insert_rowid()
     const insertedHabit = get<DbHabit>('SELECT * FROM habits WHERE id = ?', [result.lastID])
-    
+
     if (!insertedHabit) {
       throw new DatabaseError('Failed to retrieve inserted habit', ERROR_CODES.UNKNOWN)
     }
-    
+
     return insertedHabit
   } catch (error) {
     if (error instanceof DatabaseError) {
@@ -514,7 +514,7 @@ export async function updateHabitForUser(
 
     // Always update updated_at
     updates.push("updated_at = datetime('now')")
-    
+
     // Add WHERE clause parameters
     values.push(userId, habitId)
 
@@ -566,17 +566,17 @@ export async function recordHabitCompletion(
        VALUES (?, ?)`,
       [habitId, userId]
     )
-    
+
     // Get the inserted completion using last_insert_rowid()
     const insertedCompletion = get<DbHabitCompletion>(
       'SELECT * FROM habit_completions WHERE id = ?',
       [result.lastID]
     )
-    
+
     if (!insertedCompletion) {
       throw new DatabaseError('Failed to retrieve inserted completion', ERROR_CODES.UNKNOWN)
     }
-    
+
     return insertedCompletion
   } catch (error) {
     if (error instanceof DatabaseError) {
@@ -645,7 +645,7 @@ export async function countHabitCompletions(
       'SELECT COUNT(*) as count FROM habit_completions WHERE habit_id = ? AND user_id = ?',
       [habitId, userId]
     )
-    
+
     return result?.count || 0
   } catch (error) {
     throw handleDatabaseError(error, 'countHabitCompletions')
@@ -679,7 +679,7 @@ export async function getCompletionHistoryForUser(
       ORDER BY hc.completed_at DESC
       ${limit ? 'LIMIT ?' : ''}
     `
-    
+
     const params = limit ? [userId, limit] : [userId]
     return query<DbHabitCompletionWithDetails>(sql, params)
   } catch (error) {
@@ -699,7 +699,7 @@ export async function completeHabitForUser(
 ): Promise<DbHabit | null> {
   try {
     const database = getDatabase()
-    
+
     // Use transaction to ensure atomicity
     const transaction = database.transaction(() => {
       // Get existing habit by id and user_id
@@ -707,18 +707,18 @@ export async function completeHabitForUser(
         'SELECT * FROM habits WHERE id = ? AND user_id = ? LIMIT 1',
         [habitId, userId]
       )
-      
+
       if (!existing) {
         return null
       }
-      
+
       // Calculate today's date in YYYY-MM-DD format
       const today = new Date()
       const todayDateString = today.toISOString().slice(0, 10)
-      
+
       // Determine new streak based on last_completed date
       let newStreak = 1
-      
+
       if (existing.last_completed === todayDateString) {
         // If last_completed is today: keep current streak
         newStreak = existing.streak
@@ -726,7 +726,7 @@ export async function completeHabitForUser(
         // Parse the last_completed date
         const lastDate = new Date(existing.last_completed + 'T00:00:00')
         const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-        
+
         if (diffDays === 1) {
           // If last_completed is yesterday: increment streak
           newStreak = existing.streak + 1
@@ -734,7 +734,7 @@ export async function completeHabitForUser(
         // Otherwise: reset streak to 1 (already set above)
       }
       // If last_completed is null: reset streak to 1 (already set above)
-      
+
       // Update habit with new streak, completed_today=1, last_completed=today
       run(
         `UPDATE habits
@@ -745,23 +745,23 @@ export async function completeHabitForUser(
          WHERE user_id = ? AND id = ?`,
         [newStreak, todayDateString, userId, habitId]
       )
-      
+
       // Call recordHabitCompletion() to create completion record
       run(
         `INSERT INTO habit_completions (habit_id, user_id)
          VALUES (?, ?)`,
         [habitId, userId]
       )
-      
+
       // Return updated DbHabit
       const updatedHabit = get<DbHabit>(
         'SELECT * FROM habits WHERE id = ? AND user_id = ? LIMIT 1',
         [habitId, userId]
       )
-      
+
       return updatedHabit || null
     })
-    
+
     // Execute the transaction
     return transaction()
   } catch (error) {

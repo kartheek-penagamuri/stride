@@ -39,10 +39,10 @@ export interface ErrorResponse {
 }
 
 // Error codes
-export type ErrorCode = 
-  | 'INVALID_INPUT' 
-  | 'AI_ERROR' 
-  | 'RATE_LIMIT' 
+export type ErrorCode =
+  | 'INVALID_INPUT'
+  | 'AI_ERROR'
+  | 'RATE_LIMIT'
   | 'SERVER_ERROR'
   | 'NETWORK_ERROR'
   | 'TIMEOUT'

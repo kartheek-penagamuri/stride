@@ -8,10 +8,10 @@ import { LoadingState } from './LoadingState'
 import { HabitReviewCard } from './HabitReviewCard'
 import { AIGeneratedHabit, CreateHabitRequest, Habit, ErrorResponse, ErrorCode, GenerateHabitsResponse } from '@/lib/types'
 import { habitApi, aiApi } from '@/lib/api'
-import { 
-  ERROR_MESSAGES, 
+import {
+  ERROR_MESSAGES,
   isRetryableError,
-  ERROR_CODES 
+  ERROR_CODES
 } from '@/lib/constants'
 
 interface GoalInputModalProps {
@@ -133,7 +133,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
     } else {
       document.body.style.overflow = 'unset'
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -158,20 +158,20 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   }, [handleClose, isOpen, state.step])
 
   const handleGoalSubmit = async (goal: string) => {
-    setState(prev => ({ 
-      ...prev, 
-      goal, 
-      step: 'loading', 
+    setState(prev => ({
+      ...prev,
+      goal,
+      step: 'loading',
       goalAnalysis: '',
-      error: null, 
+      error: null,
       errorCode: null,
-      canRetry: true 
+      canRetry: true
     }))
 
     try {
       // First, generate clarifying questions
       const questionsResult = await aiApi.generateClarifyingQuestions(goal)
-      
+
       if (questionsResult.error || !questionsResult.data) {
         throw new Error(questionsResult.error || 'Failed to generate questions')
       }
@@ -187,13 +187,13 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         error: null,
         errorCode: null
       }))
-      
+
     } catch (error) {
       console.error('Error generating questions:', error)
-      
+
       const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC
       const errorCode: ErrorCode = ERROR_CODES.AI_ERROR
-      
+
       setState(prev => ({
         ...prev,
         step: 'error',
@@ -205,25 +205,25 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
   }
 
   const handleQuestionsSubmit = async (answers: string[]) => {
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       answers,
-      step: 'loading', 
+      step: 'loading',
       goalAnalysis: '',
-      error: null, 
-      errorCode: null 
+      error: null,
+      errorCode: null
     }))
 
     await generateHabitsWithContext(answers)
   }
 
   const handleSkipQuestions = async () => {
-    setState(prev => ({ 
-      ...prev, 
-      step: 'loading', 
+    setState(prev => ({
+      ...prev,
+      step: 'loading',
       goalAnalysis: '',
-      error: null, 
-      errorCode: null 
+      error: null,
+      errorCode: null
     }))
 
     await generateHabitsWithContext([])
@@ -237,9 +237,9 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       // Build context if answers provided
       const context = answers.length > 0 && answers.some(a => a.trim().length > 0)
         ? {
-            questions: state.clarifyingQuestions,
-            answers: answers
-          }
+          questions: state.clarifyingQuestions,
+          answers: answers
+        }
         : undefined
 
       timeoutId = setTimeout(() => controller.abort(), HABIT_GENERATION_TIMEOUT_MS)
@@ -249,9 +249,9 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           goal: state.goal,
-          context 
+          context
         }),
         signal: controller.signal
       })
@@ -280,7 +280,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         const errorResponse = data as ErrorResponse
         let errorMessage = errorResponse.error || ERROR_MESSAGES.GENERIC
         let errorCode = errorResponse.code || ERROR_CODES.SERVER_ERROR
-        
+
         // Map HTTP status codes to error messages if code not provided
         if (!errorResponse.code) {
           if (response.status === 429) {
@@ -319,7 +319,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
       // Successfully generated habits
       const habits = data.habits ?? []
-      
+
       if (habits.length === 0) {
         setState(prev => ({
           ...prev,
@@ -332,7 +332,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       }
 
       // Validate habit structure
-      const validHabits = habits.filter((habit) => 
+      const validHabits = habits.filter((habit) =>
         Boolean(habit.id && habit.title && habit.cue && habit.action && habit.reward)
       )
 
@@ -365,10 +365,10 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       }
 
       console.error('Error generating habits:', error)
-      
+
       let errorMessage: string = ERROR_MESSAGES.GENERIC
       let errorCode: ErrorCode = ERROR_CODES.NETWORK_ERROR
-      
+
       // Handle specific error types
       if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
         errorMessage = ERROR_MESSAGES.TIMEOUT
@@ -377,7 +377,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         errorMessage = ERROR_MESSAGES.CONNECTION_ERROR
         errorCode = ERROR_CODES.NETWORK_ERROR
       }
-      
+
       setState(prev => ({
         ...prev,
         step: 'error',
@@ -420,12 +420,12 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         }))
 
       // Save habits using bulk API function with timeout
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Save timeout')), 30000)
       )
-      
+
       const savePromise = habitApi.createBulk(selectedHabits)
-      
+
       const result = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>
 
       if (result.error) {
@@ -460,10 +460,10 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
     } catch (error) {
       console.error('Error saving habits:', error)
-      
+
       let errorMessage: string = ERROR_MESSAGES.SAVE_FAILED
       let errorCode: ErrorCode = ERROR_CODES.SERVER_ERROR
-      
+
       if (error instanceof Error && error.message?.includes('timeout')) {
         errorMessage = ERROR_MESSAGES.TIMEOUT
         errorCode = ERROR_CODES.TIMEOUT
@@ -471,7 +471,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         errorMessage = ERROR_MESSAGES.CONNECTION_ERROR
         errorCode = ERROR_CODES.NETWORK_ERROR
       }
-      
+
       setState(prev => ({
         ...prev,
         isSubmitting: false,
@@ -547,9 +547,8 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
           return (
             <li key={step.id} className="flex items-start gap-3">
               <div
-                className={`w-8 h-8 rounded-full border text-xs font-semibold flex items-center justify-center ${
-                  isCurrent ? circleActive : isComplete ? circleComplete : circleBase
-                }`}
+                className={`w-8 h-8 rounded-full border text-xs font-semibold flex items-center justify-center ${isCurrent ? circleActive : isComplete ? circleComplete : circleBase
+                  }`}
               >
                 {index + 1}
               </div>
@@ -578,7 +577,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10">
         <div
-          className="relative w-full max-w-5xl overflow-hidden rounded-[40px] border border-[var(--border)] bg-white shadow-[0_45px_100px_rgba(0,0,0,0.15)] grid lg:grid-cols-[280px,1fr]"
+          className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-[0_45px_100px_rgba(0,0,0,0.15)] grid lg:grid-cols-[280px,1fr]"
           onClick={(e) => e.stopPropagation()}
         >
           <aside className="hidden lg:flex flex-col gap-8 bg-white text-[var(--ink)] p-8 border-r border-[var(--border)] relative overflow-hidden">
@@ -680,11 +679,10 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                       <button
                         onClick={handleAddHabits}
                         disabled={state.isSubmitting || state.selectedHabitIds.length === 0}
-                        className={`flex-1 rounded-[18px] px-6 py-4 text-sm font-semibold text-white transition-colors shadow-[0_20px_40px_rgba(0,0,0,0.12)] ${
-                          state.isSubmitting || state.selectedHabitIds.length === 0
-                            ? 'bg-[#d0d0d0] cursor-not-allowed'
-                            : 'bg-[var(--accent)] hover:bg-[var(--accent-strong)]'
-                        }`}
+                        className={`flex-1 rounded-[18px] px-6 py-4 text-sm font-semibold text-white transition-colors shadow-[0_20px_40px_rgba(0,0,0,0.12)] ${state.isSubmitting || state.selectedHabitIds.length === 0
+                          ? 'bg-[#d0d0d0] cursor-not-allowed'
+                          : 'bg-[var(--accent)] hover:bg-[var(--accent-strong)]'
+                          }`}
                       >
                         {state.isSubmitting ? (
                           <span className="flex items-center justify-center gap-2">
@@ -706,10 +704,10 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
                         {state.errorCode === ERROR_CODES.RATE_LIMIT
                           ? 'Too many requests'
                           : state.errorCode === ERROR_CODES.NETWORK_ERROR
-                          ? 'Connection interrupted'
-                          : state.errorCode === ERROR_CODES.INVALID_INPUT
-                          ? 'Invalid input'
-                          : 'Something went wrong'}
+                            ? 'Connection interrupted'
+                            : state.errorCode === ERROR_CODES.INVALID_INPUT
+                              ? 'Invalid input'
+                              : 'Something went wrong'}
                       </p>
                       <p className="text-sm text-[var(--accent)]">{state.error || ERROR_MESSAGES.GENERIC}</p>
                       {state.errorCode && (
@@ -750,14 +748,14 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
 
                 {state.step === 'success' && (
                   <div className="space-y-6 text-center">
-                    <div className="rounded-2xl border border-[#ecfbf7] bg-[#ecfbf7] p-6 space-y-2">
-                      <p className="text-lg font-semibold text-[var(--spruce)]">Habits added successfully</p>
-                      <p className="text-sm text-[var(--spruce)]">
+                    <div className="rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] p-6 space-y-2">
+                      <p className="text-lg font-semibold text-[var(--accent-strong)]">Habits added successfully</p>
+                      <p className="text-sm text-[var(--accent-strong)]">
                         {state.savedHabitsCount} habit{state.savedHabitsCount !== 1 ? 's have' : ' has'} been saved to your dashboard. Opening it now.
                       </p>
                     </div>
                     <div className="flex items-center justify-center">
-                      <span className="h-10 w-10 rounded-full border-2 border-[var(--border)] border-t-[var(--spruce)] animate-spin" />
+                      <span className="h-10 w-10 rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)] animate-spin" />
                     </div>
                   </div>
                 )}

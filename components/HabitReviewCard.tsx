@@ -10,19 +10,18 @@ interface HabitReviewCardProps {
 
 const PRINCIPLE_LABELS: Record<AtomicPrinciple, { label: string; color: string }> = {
   [AtomicPrinciple.OBVIOUS]: { label: 'Make it Obvious', color: 'bg-white text-[var(--muted)] border-[var(--border)]' },
-  [AtomicPrinciple.ATTRACTIVE]: { label: 'Make it Attractive', color: 'bg-white text-[var(--accent)] border-[var(--accent-soft)]' },
-  [AtomicPrinciple.EASY]: { label: 'Make it Easy', color: 'bg-[#ecfbf7] text-[var(--spruce)] border-[var(--border)]' },
-  [AtomicPrinciple.SATISFYING]: { label: 'Make it Satisfying', color: 'bg-white text-[var(--accent)] border-[var(--accent-soft)]' }
+  [AtomicPrinciple.ATTRACTIVE]: { label: 'Make it Attractive', color: 'bg-[var(--accent-soft)] text-[var(--accent-strong)] border-[var(--accent)]/20' },
+  [AtomicPrinciple.EASY]: { label: 'Make it Easy', color: 'bg-[var(--accent-soft)] text-[var(--accent-strong)] border-[var(--accent)]/20' },
+  [AtomicPrinciple.SATISFYING]: { label: 'Make it Satisfying', color: 'bg-white text-[var(--warm)] border-[var(--warm)]/20' }
 }
 
 export const HabitReviewCard: React.FC<HabitReviewCardProps> = ({ habit, isSelected, onToggle }) => {
   return (
     <div
-      className={`relative rounded-[28px] border p-6 sm:p-8 transition-all cursor-pointer ${
-        isSelected
-          ? 'border-[var(--accent)] bg-white shadow-[0_25px_60px_rgba(0,0,0,0.12)]'
-          : 'border-[var(--border)] bg-white/95 hover:border-[var(--border)]'
-      }`}
+      className={`relative rounded-3xl border p-6 sm:p-8 transition-all cursor-pointer ${isSelected
+        ? 'border-[var(--accent)] bg-white shadow-lg shadow-[var(--accent)]/10'
+        : 'border-[var(--border)] bg-white/50 hover:border-[var(--accent)]/50 hover:bg-white'
+        }`}
       onClick={() => onToggle(habit.id)}
     >
       <input type="checkbox" checked={isSelected} onChange={() => onToggle(habit.id)} className="sr-only" readOnly />
@@ -35,9 +34,8 @@ export const HabitReviewCard: React.FC<HabitReviewCardProps> = ({ habit, isSelec
           </p>
         </div>
         <div
-          className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${
-            isSelected ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--border)] text-[var(--muted)]'
-          }`}
+          className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${isSelected ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--border)] text-[var(--muted)]'
+            }`}
         >
           {isSelected ? <Check className="w-5 h-5" /> : <span className="text-xs font-semibold">Add</span>}
         </div>

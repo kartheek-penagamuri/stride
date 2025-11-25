@@ -12,10 +12,10 @@ interface GoalFormProps {
 const MAX_CHARACTERS = 500
 const MIN_CHARACTERS = 10
 
-export const GoalForm: React.FC<GoalFormProps> = ({ 
-  onSubmit, 
-  isLoading, 
-  initialValue = '' 
+export const GoalForm: React.FC<GoalFormProps> = ({
+  onSubmit,
+  isLoading,
+  initialValue = ''
 }) => {
   const [goal, setGoal] = useState(initialValue)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     setGoal(value)
-    
+
     // Clear error when user starts typing
     if (error) {
       setError(null)
@@ -36,25 +36,25 @@ export const GoalForm: React.FC<GoalFormProps> = ({
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     // Validate empty input
     if (!goal.trim()) {
       setError(INPUT_ERRORS.EMPTY_GOAL)
       return
     }
-    
+
     // Validate minimum length
     if (goal.trim().length < MIN_CHARACTERS) {
       setError(INPUT_ERRORS.GOAL_TOO_SHORT)
       return
     }
-    
+
     // Validate maximum length
     if (goal.length > MAX_CHARACTERS) {
       setError(INPUT_ERRORS.GOAL_TOO_LONG)
       return
     }
-    
+
     // Clear error and submit
     setError(null)
     onSubmit(goal.trim())
@@ -79,9 +79,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           </span>
         </div>
         <div
-          className={`rounded-2xl border ${
-            error ? 'border-[var(--border)] shadow-[0_0_0_1px_rgba(139,58,43,0.25)]' : 'border-[var(--border)]'
-          } bg-white/80 transition-colors`}
+          className={`rounded-2xl border ${error ? 'border-[var(--border)] shadow-[0_0_0_1px_var(--danger)]' : 'border-[var(--border)]'
+            } bg-white/80 transition-colors`}
         >
           <textarea
             id="goal-input"
@@ -121,9 +120,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       <button
         type="submit"
         disabled={isLoading || isOverLimit}
-        className={`w-full rounded-[18px] py-4 px-6 text-base font-semibold tracking-tight text-white transition-all shadow-[0_20px_40px_rgba(0,0,0,0.12)] ${
-          isLoading || isOverLimit ? 'bg-[#d0d0d0] cursor-not-allowed' : 'bg-[var(--accent)] hover:bg-[var(--accent-strong)]'
-        }`}
+        className={`w-full rounded-2xl py-4 px-6 text-base font-semibold tracking-tight text-white transition-all shadow-[0_20px_40px_rgba(0,0,0,0.12)] ${isLoading || isOverLimit ? 'bg-[var(--border)] cursor-not-allowed' : 'bg-[var(--accent)] hover:bg-[var(--accent-strong)]'
+          }`}
       >
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
