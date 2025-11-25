@@ -7,12 +7,9 @@ import {
   Plus,
   Check,
   Trash2,
-  LogIn,
-  UserPlus,
   Sparkles,
   Flame,
   LayoutGrid,
-  Calendar as CalendarIcon,
   Activity,
   Zap,
   Coffee,
@@ -20,8 +17,7 @@ import {
   BookOpen,
   Dumbbell,
   Briefcase,
-  Heart,
-  MoreHorizontal
+  Heart
 } from 'lucide-react'
 import { CreateHabitRequest, Habit } from '@/lib/types'
 import { GoalInputModal } from '@/components/GoalInputModal'
@@ -209,6 +205,8 @@ export default function Dashboard() {
     setSelectedHabit(null)
   }
 
+  const hasError = Boolean(error)
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--page-bg)] flex items-center justify-center">
@@ -226,6 +224,14 @@ export default function Dashboard() {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm text-[var(--ink)] shadow-lg animate-fade-in-up flex items-center gap-3">
           <div className="h-2 w-2 rounded-full bg-[var(--accent)]" />
           Please sign in to save your progress.
+        </div>
+      )}
+
+      {hasError && (
+        <div className="mx-auto mt-4 max-w-5xl px-4">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
+          </div>
         </div>
       )}
 
@@ -274,7 +280,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-[var(--ink)] mb-1">
             {user?.name ? `Welcome back, ${user.name}` : 'Your Daily Routine'}
           </h1>
-          <p className="text-[var(--muted)] mb-6">Small steps add up. Here's your progress.</p>
+          <p className="text-[var(--muted)] mb-6">Small steps add up. Here is your progress.</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-2xl bg-white border border-[var(--border)] shadow-sm">

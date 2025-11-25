@@ -8,7 +8,7 @@ function deleteDbFile() {
   
   try {
     fs.unlinkSync('stride.db')
-  } catch (err) {
+  } catch {
     // If file is still locked, wait a bit and try again
     const maxRetries = 5
     for (let i = 0; i < maxRetries; i++) {
@@ -18,7 +18,7 @@ function deleteDbFile() {
         while (Date.now() - start < 100) {}
         fs.unlinkSync('stride.db')
         return
-      } catch (retryErr) {
+      } catch {
         if (i === maxRetries - 1) {
           // File is still locked, just continue - the database will be reused
           return
@@ -194,12 +194,12 @@ describe('Habits Table Operations', () => {
     it('should list all habits for a user', async () => {
       const { createHabitForUser, listHabitsForUser } = await import('./db')
       
-      const habit1 = await createHabitForUser(testUserId, {
+      await createHabitForUser(testUserId, {
         title: 'Habit 1',
         description: 'Description 1'
       })
       
-      const habit2 = await createHabitForUser(testUserId, {
+      await createHabitForUser(testUserId, {
         title: 'Habit 2',
         description: 'Description 2'
       })

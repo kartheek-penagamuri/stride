@@ -210,7 +210,7 @@ export default function HomePage() {
                 Small steps, big peace of mind.
               </h2>
               <p className="text-lg text-[var(--muted)]">
-                We don't believe in "grinding". We believe in consistency through clarity and calm.
+                We do not believe in grinding. We believe in consistency through clarity and calm.
               </p>
             </div>
 
@@ -229,7 +229,7 @@ export default function HomePage() {
                 {
                   icon: <Sparkles className="h-6 w-6 text-[var(--accent)]" />,
                   title: "AI-powered guidance",
-                  desc: "Don't know where to start? Our AI suggests the perfect first steps for any goal."
+                  desc: "Not sure where to start? Our AI suggests the perfect first steps for any goal."
                 }
               ].map((feature, i) => (
                 <div key={i} className="p-8 rounded-2xl bg-[var(--page-bg)] border border-[var(--border)] hover:shadow-lg transition-shadow duration-300">
@@ -316,7 +316,7 @@ export default function HomePage() {
                       <Star key={s} className="h-4 w-4 fill-[var(--warm)] text-[var(--warm)]" />
                     ))}
                   </div>
-                  <p className="text-[var(--ink)] mb-6 font-medium">"{t.quote}"</p>
+                  <p className="text-[var(--ink)] mb-6 font-medium">&ldquo;{t.quote}&rdquo;</p>
                   <div>
                     <div className="font-semibold text-[var(--ink)]">{t.author}</div>
                     <div className="text-sm text-[var(--muted)]">{t.role}</div>

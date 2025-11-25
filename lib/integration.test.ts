@@ -9,7 +9,7 @@ function deleteDbFile() {
   
   try {
     fs.unlinkSync('stride.db')
-  } catch (err) {
+  } catch {
     // If file is still locked, wait a bit and try again
     const maxRetries = 5
     for (let i = 0; i < maxRetries; i++) {
@@ -19,7 +19,7 @@ function deleteDbFile() {
         while (Date.now() - start < 100) {}
         fs.unlinkSync('stride.db')
         return
-      } catch (retryErr) {
+      } catch {
         if (i === maxRetries - 1) {
           // File is still locked, just continue - the database will be reused
           return
