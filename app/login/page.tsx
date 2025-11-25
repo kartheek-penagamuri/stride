@@ -131,7 +131,7 @@ export default function LoginPage() {
                 Sign in to your calm, guided studio.
               </h1>
               <p className="text-lg leading-relaxed text-[var(--muted)]">
-                Keep your rituals, streaks, and AI plans saved to your account. We protect credentials and keep the tone soft—always.
+                Keep your rituals, streaks, and AI plans saved to your account.
               </p>
             </div>
 
@@ -149,15 +149,9 @@ export default function LoginPage() {
           </section>
 
           <section className="soft-card space-y-6 rounded-[28px] border-[var(--border)] bg-white/95 p-8 shadow-[0_26px_75px_rgba(0,0,0,0.08)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-                {mode === 'login' ? 'Welcome back' : 'Create account'}
-              </div>
-              <div className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_30px_rgba(0,132,137,0.28)]">
-                {mode === 'login' ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                {mode === 'login' ? 'Sign in' : 'Sign up'}
-              </div>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+              <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+              {mode === 'login' ? 'Welcome back' : 'Create account'}
             </div>
 
             <div className="flex gap-2 rounded-full bg-[#f2f2f2] p-1 text-sm font-semibold text-[var(--muted)]">
@@ -246,17 +240,6 @@ export default function LoginPage() {
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
-
-            <div className="rounded-[24px] border border-[var(--border)] bg-white/80 p-5 text-sm text-[var(--muted)]">
-              <div className="flex items-center gap-2 text-[var(--accent)]">
-                <CheckCircle2 className="h-4 w-4" />
-                Safety-first note
-              </div>
-              <p className="mt-2 leading-relaxed">
-                We hash passwords with bcrypt before storing them in Postgres. Add your `DATABASE_URL` in
-                `.env.local` and the users table will be created automatically on first sign-up.
-              </p>
-            </div>
           </section>
         </main>
       </div>

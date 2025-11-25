@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useHabits } from '@/hooks/useHabits'
 import {
   Plus,
@@ -72,6 +73,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export default function Dashboard() {
+  const router = useRouter()
   const [user, setUser] = useState<{ id: number; email: string; name?: string } | null>(null)
   const { habits, loading, error, createHabit, completeHabit, deleteHabit, fetchHabits } = useHabits(user || undefined)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -218,6 +220,7 @@ export default function Dashboard() {
       localStorage.removeItem('strideUser')
       setUser(null)
       setShowCreateForm(false)
+      router.push('/')
     })
   }
 
