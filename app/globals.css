@@ -4,16 +4,17 @@
 
 @layer base {
   :root {
-    --color-bg: #F5EFE6;
-    --color-card: #FCFAF5;
-    --color-text-primary: #1B1917;
-    --color-text-secondary: #574B3D;
-    --color-accent: #B05A2C;
-    --color-accent-soft: #F4E3D0;
-    --color-calm: #6E6254;
-    --color-success: #1E9D76;
-    --color-warning: #D96941;
-    --color-error: #CF4A35;
+    --page-bg: #f7f7f7;
+    --ink: #222222;
+    --muted: #717171;
+    --border: #e9e9e9;
+    --card: #ffffff;
+    --accent: #008489;
+    --accent-strong: #006f73;
+    --accent-soft: #e6f5f7;
+    --spruce: #008489;
+    --sand: #f6f1eb;
+    --shadow-soft: 0 24px 70px rgba(0, 0, 0, 0.08);
   }
 
   html {
@@ -21,40 +22,46 @@
   }
 
   body {
-    background-color: var(--color-bg);
-    background-image: none;
-    @apply text-[var(--color-text-primary)] antialiased;
+    background: linear-gradient(180deg, #ffffff 0%, #fafafa 60%, #f6f8f9 100%);
+    color: var(--ink);
+    @apply antialiased;
   }
 
   ::selection {
-    background-color: rgba(176, 90, 44, 0.2);
-    color: var(--color-text-primary);
+    background-color: rgba(0, 132, 137, 0.12);
+    color: var(--ink);
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-[#FFC773] via-[#FFAE5C] to-[#FF8A3D] bg-clip-text text-transparent;
+  .sunrise {
+    background-image:
+      radial-gradient(circle at 12% 16%, rgba(0, 132, 137, 0.12), transparent 42%),
+      radial-gradient(circle at 78% 10%, rgba(0, 132, 137, 0.12), transparent 40%),
+      linear-gradient(135deg, #f8fbfd 0%, #f5f7f8 60%, #f3f6f8 100%);
+  }
+  
+  .pill-card {
+    @apply rounded-[28px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-soft)];
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
   }
-  
+
   .glass {
-    @apply bg-white/50 backdrop-blur-md border border-[#FFE7D3];
+    @apply bg-white/70 backdrop-blur-lg border border-[color-mix(in_srgb,var(--border)_70%,transparent)] shadow-[0_14px_45px_rgba(0,0,0,0.06)];
   }
 
   .soft-card {
-    @apply rounded-[28px] border border-[#FFE3CD] bg-[#FFF9F5]/95 backdrop-blur-lg shadow-[0_22px_65px_rgba(255,138,61,0.15)];
+    @apply rounded-[26px] border border-[var(--border)] bg-white backdrop-blur-lg shadow-[var(--shadow-soft)];
   }
 
   .hero-surface {
     background-image:
-      radial-gradient(circle at 18% 28%, rgba(255, 226, 206, 0.25), transparent 60%),
-      radial-gradient(circle at 65% 30%, rgba(255, 255, 255, 0.4), transparent 50%),
-      radial-gradient(circle at 55% 70%, rgba(255, 255, 255, 0.65), transparent 65%),
-      linear-gradient(135deg, #f8f3e8 0%, #f4efe3 60%, #f3ede0 100%);
+      radial-gradient(circle at 16% 28%, rgba(0, 132, 137, 0.08), transparent 55%),
+      radial-gradient(circle at 78% 18%, rgba(52, 50, 46, 0.05), transparent 50%),
+      linear-gradient(120deg, #ffffff 0%, #f6fafc 60%, #f3f6f8 100%);
   }
 
   /* Custom scrollbar */
@@ -63,18 +70,18 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f5efe6;
+    background: #f7f7f7;
     border-radius: 9999px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #d9d0c0;
+    background: #e1e1e1;
     border-radius: 9999px;
-    border: 2px solid #f5efe6;
+    border: 2px solid #f7f7f7;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #b8a994;
+    background: #c5c5c5;
   }
 
   /* Animation utilities */

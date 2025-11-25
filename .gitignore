@@ -145,6 +145,7 @@ tmp/
 temp/
 
 # Database
+stride.db
 *.db
 *.sqlite
 *.sqlite3

@@ -2,13 +2,20 @@ import { useState, useEffect } from 'react'
 import { habitApi } from '@/lib/api'
 import { Habit, CreateHabitRequest, UpdateHabitRequest } from '@/lib/types'
 
-export function useHabits() {
+export function useHabits(currentUser?: { id: number }) {
     const [habits, setHabits] = useState<Habit[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    // Fetch all habits
+    // Fetch all habits for the logged-in user
     const fetchHabits = async () => {
+        if (!currentUser) {
+            setHabits([])
+            setLoading(false)
+            setError(null)
+            return
+        }
+
         setLoading(true)
         setError(null)
 
@@ -25,6 +32,11 @@ export function useHabits() {
 
     // Create a new habit
     const createHabit = async (habitData: CreateHabitRequest) => {
+        if (!currentUser) {
+            setError('Please log in to save habits.')
+            return false
+        }
+
         const { data, error: apiError } = await habitApi.create(habitData)
 
         if (apiError) {
@@ -40,6 +52,11 @@ export function useHabits() {
 
     // Update a habit
     const updateHabit = async (id: number, habitData: UpdateHabitRequest) => {
+        if (!currentUser) {
+            setError('Please log in to update habits.')
+            return false
+        }
+
         const { data, error: apiError } = await habitApi.update(id, habitData)
 
         if (apiError) {
@@ -57,6 +74,11 @@ export function useHabits() {
 
     // Delete a habit
     const deleteHabit = async (id: number) => {
+        if (!currentUser) {
+            setError('Please log in to delete habits.')
+            return false
+        }
+
         const { error: apiError } = await habitApi.delete(id)
 
         if (apiError) {
@@ -70,6 +92,11 @@ export function useHabits() {
 
     // Complete a habit
     const completeHabit = async (id: number) => {
+        if (!currentUser) {
+            setError('Please log in to complete habits.')
+            return false
+        }
+
         const { data, error: apiError } = await habitApi.complete(id)
 
         if (apiError) {
@@ -85,10 +112,11 @@ export function useHabits() {
         return false
     }
 
-    // Load habits on mount
+    // Load habits when the user changes
     useEffect(() => {
         fetchHabits()
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser?.id])
 
     return {
         habits,
@@ -103,12 +131,19 @@ export function useHabits() {
 }
 
 // Hook for a single habit
-export function useHabit(id: number) {
+export function useHabit(id: number, currentUser?: { id: number }) {
     const [habit, setHabit] = useState<Habit | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     const fetchHabit = async () => {
+        if (!currentUser) {
+            setHabit(null)
+            setLoading(false)
+            setError('Please log in to view this habit.')
+            return
+        }
+
         setLoading(true)
         setError(null)
 
@@ -124,10 +159,11 @@ export function useHabit(id: number) {
     }
 
     useEffect(() => {
-        if (id) {
+        if (id && currentUser) {
             fetchHabit()
         }
-    }, [id])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, currentUser?.id])
 
     return {
         habit,

@@ -1,66 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUserFromCookies } from '@/lib/auth'
+import {
+  createHabitForUser,
+  DbHabit,
+  ensureHabitsTable,
+  ensureUsersTable,
+  listHabitsForUser
+} from '@/lib/db'
 
-// GET /api/habits - Get all habits
-export async function GET() {
-  try {
-    // This is where you'd typically fetch from a database
-    const habits = [
-      {
-        id: 1,
-        title: "Morning Water",
-        description: "Drink a glass of water after waking up",
-        streak: 7,
-        category: "health"
-      },
-      {
-        id: 2,
-        title: "Daily Reading",
-        description: "Read for 20 minutes every evening",
-        streak: 3,
-        category: "learning"
-      }
-    ]
-
-    return NextResponse.json({ habits })
-  } catch (error) {
-    console.error('Failed to fetch habits:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch habits' },
-      { status: 500 }
-    )
+function toClientHabit(habit: DbHabit) {
+  return {
+    id: habit.id,
+    title: habit.title,
+    description: habit.description,
+    category: habit.category,
+    streak: habit.streak,
+    completedToday: habit.completed_today,
+    lastCompleted: habit.last_completed,
+    createdAt: habit.created_at,
+    updatedAt: habit.updated_at
   }
 }
 
-// POST /api/habits - Create a new habit
+export async function GET() {
+  try {
+    const user = getAuthUserFromCookies()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    await ensureUsersTable()
+    await ensureHabitsTable()
+
+    const habits = await listHabitsForUser(user.id)
+    return NextResponse.json({ habits: habits.map(toClientHabit) })
+  } catch (error) {
+    console.error('Failed to fetch habits:', error)
+    return NextResponse.json({ error: 'Failed to fetch habits' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const user = getAuthUserFromCookies()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    await ensureUsersTable()
+    await ensureHabitsTable()
+
     const body = await request.json()
     const { title, description, category } = body
 
-    // Validate input
     if (!title || !description) {
-      return NextResponse.json(
-        { error: 'Title and description are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Title and description are required' }, { status: 400 })
     }
 
-    // This is where you'd typically save to a database
-    const newHabit = {
-      id: Date.now(), // In real app, use proper ID generation
-      title,
-      description,
-      category: category || 'general',
-      streak: 0,
-      createdAt: new Date().toISOString()
-    }
+    const habit = await createHabitForUser(user.id, {
+      title: title.trim(),
+      description: description.trim(),
+      category: category?.trim() || 'general'
+    })
 
-    return NextResponse.json({ habit: newHabit }, { status: 201 })
+    return NextResponse.json({ habit: toClientHabit(habit) }, { status: 201 })
   } catch (error) {
     console.error('Failed to create habit:', error)
-    return NextResponse.json(
-      { error: 'Failed to create habit' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to create habit' }, { status: 500 })
   }
 }

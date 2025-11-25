@@ -1,89 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUserFromCookies } from '@/lib/auth'
+import {
+  DbHabit,
+  deleteHabitForUser,
+  ensureHabitsTable,
+  ensureUsersTable,
+  findHabitById,
+  updateHabitForUser
+} from '@/lib/db'
 
-// GET /api/habits/[id] - Get a specific habit
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+function toClientHabit(habit: DbHabit) {
+  return {
+    id: habit.id,
+    title: habit.title,
+    description: habit.description,
+    category: habit.category,
+    streak: habit.streak,
+    completedToday: habit.completed_today,
+    lastCompleted: habit.last_completed,
+    createdAt: habit.created_at,
+    updatedAt: habit.updated_at
+  }
+}
+
+type Params = {
+  params: { id: string }
+}
+
+export async function GET(_req: NextRequest, { params }: Params) {
   try {
-    const id = params.id
+    const user = getAuthUserFromCookies()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // This is where you'd typically fetch from a database
-    const habit = {
-      id: parseInt(id),
-      title: "Morning Water",
-      description: "Drink a glass of water after waking up",
-      streak: 7,
-      category: "health",
-      completedDates: [
-        "2024-11-01",
-        "2024-11-02",
-        "2024-11-03"
-      ]
-    }
+    await ensureUsersTable()
+    await ensureHabitsTable()
 
-    if (!habit) {
-      return NextResponse.json(
-        { error: 'Habit not found' },
-        { status: 404 }
-      )
-    }
+    const habitId = Number(params.id)
+    const habit = await findHabitById(user.id, habitId)
+    if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ habit })
+    return NextResponse.json({ habit: toClientHabit(habit) })
   } catch (error) {
     console.error('Failed to fetch habit:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch habit' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch habit' }, { status: 500 })
   }
 }
 
-// PUT /api/habits/[id] - Update a habit
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const id = params.id
-    const body = await request.json()
+    const user = getAuthUserFromCookies()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    await ensureUsersTable()
+    await ensureHabitsTable()
+
+    const habitId = Number(params.id)
+    const body = await req.json()
     const { title, description, category } = body
 
-    // This is where you'd typically update in a database
-    const updatedHabit = {
-      id: parseInt(id),
-      title,
-      description,
-      category,
-      updatedAt: new Date().toISOString()
-    }
+    const updated = await updateHabitForUser(user.id, habitId, { title, description, category })
+    if (!updated) return NextResponse.json({ error: 'Unable to update habit' }, { status: 400 })
 
-    return NextResponse.json({ habit: updatedHabit })
+    return NextResponse.json({ habit: toClientHabit(updated) })
   } catch (error) {
     console.error('Failed to update habit:', error)
-    return NextResponse.json(
-      { error: 'Failed to update habit' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update habit' }, { status: 500 })
   }
 }
 
-// DELETE /api/habits/[id] - Delete a habit
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
-    const { id } = params
-    // This is where you'd typically delete from a database
-    // await deleteHabitFromDatabase(id)
+    const user = getAuthUserFromCookies()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    return NextResponse.json({ message: `Habit ${id} deleted successfully` })
+    await ensureUsersTable()
+    await ensureHabitsTable()
+
+    const habitId = Number(params.id)
+    await deleteHabitForUser(user.id, habitId)
+
+    return NextResponse.json({ message: 'Habit deleted' })
   } catch (error) {
     console.error('Failed to delete habit:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete habit' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete habit' }, { status: 500 })
   }
 }

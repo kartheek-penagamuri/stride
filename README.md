@@ -17,6 +17,7 @@ A modern web application for building and tracking atomic habits, built with Nex
 
 - **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
+- **Database**: SQLite (file-based, zero-configuration)
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **AI**: OpenAI SDK for habit generation
@@ -47,7 +48,9 @@ npm install
 cp .env.example .env.local
 ```
 
-4. Configure your OpenAI API key (required for AI habit generation):
+4. The database will be created automatically on first run (no setup required!)
+
+5. Configure your OpenAI API key (required for AI habit generation):
 
    a. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
    
@@ -57,16 +60,16 @@ cp .env.example .env.local
    ```
    
    c. (Optional) Adjust other OpenAI settings if needed:
-   - `OPENAI_MODEL`: The model to use (default: `gpt-4-turbo-preview`)
+   - `OPENAI_MODEL`: The model to use (default: `gpt-5.1`)
    - `OPENAI_MAX_TOKENS`: Maximum tokens for responses (default: `2000`)
    - `OPENAI_TEMPERATURE`: Creativity level 0-1 (default: `0.7`)
 
-5. Run the development server:
+6. Run the development server:
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Environment Variables
 
@@ -82,7 +85,7 @@ This application requires environment variables to be configured in a `.env.loca
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_MODEL` | OpenAI model to use | `gpt-4-turbo-preview` |
+| `OPENAI_MODEL` | OpenAI model to use | `gpt-5.1` |
 | `OPENAI_MAX_TOKENS` | Maximum tokens for AI responses | `2000` |
 | `OPENAI_TEMPERATURE` | AI creativity level (0-1) | `0.7` |
 | `NEXT_PUBLIC_APP_URL` | Application URL | `http://localhost:3000` |
@@ -97,6 +100,78 @@ This application requires environment variables to be configured in a `.env.loca
 6. **Important**: Keep your API key secure and never commit it to version control
 
 **Note**: The AI habit generation feature requires a valid OpenAI API key with available credits. Without it, the "Start Your Journey" feature will not work.
+
+## Database
+
+This application uses **SQLite**, a lightweight, file-based database that requires zero configuration. The database is automatically created when you first run the application.
+
+### Database File Location
+
+The database is stored in a file called `stride.db` in the project root directory. This file contains all your user accounts, habits, and completion history.
+
+### Key Features
+
+- **Zero Configuration**: No database server setup required
+- **Automatic Initialization**: Tables and schema created automatically on first run
+- **File-Based**: All data stored in a single `stride.db` file
+- **ACID Compliant**: Full transaction support for data integrity
+- **Foreign Key Constraints**: Automatic cascade deletion for related records
+
+### Database Schema
+
+The application uses three main tables:
+
+1. **users** - User accounts with email and password
+2. **habits** - User habits with tracking information (streak, last_completed)
+3. **habit_completions** - Detailed completion history for each habit
+
+### Backup Instructions
+
+Since all data is stored in a single file, backing up your database is simple:
+
+#### Manual Backup
+
+```bash
+# Create a backup
+cp stride.db stride.db.backup
+
+# Or with timestamp
+cp stride.db "stride.db.backup.$(date +%Y%m%d_%H%M%S)"
+```
+
+#### Restore from Backup
+
+```bash
+# Stop the application first, then:
+cp stride.db.backup stride.db
+```
+
+#### Automated Backup Script
+
+Create a backup script (`backup.sh`):
+
+```bash
+#!/bin/bash
+BACKUP_DIR="./backups"
+mkdir -p "$BACKUP_DIR"
+cp stride.db "$BACKUP_DIR/stride.db.$(date +%Y%m%d_%H%M%S)"
+# Keep only last 7 days of backups
+find "$BACKUP_DIR" -name "stride.db.*" -mtime +7 -delete
+```
+
+Make it executable and run:
+
+```bash
+chmod +x backup.sh
+./backup.sh
+```
+
+#### Important Notes
+
+- The `stride.db` file is excluded from version control (in `.gitignore`)
+- Back up your database regularly, especially before updates
+- Store backups in a secure location separate from your application
+- Consider cloud backup solutions for production deployments
 
 ## Project Structure
 
@@ -186,8 +261,9 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Future Enhancements
 
 - [ ] User authentication
-- [ ] Database integration
 - [ ] Habit analytics and insights
 - [ ] Social features and sharing
 - [ ] Mobile app
 - [ ] Habit templates and recommendations
+- [ ] Cloud backup integration
+- [ ] Data export to JSON/CSV

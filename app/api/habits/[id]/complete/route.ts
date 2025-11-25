@@ -1,35 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUserFromCookies } from '@/lib/auth'
+import {
+  completeHabitForUser,
+  DbHabit,
+  ensureHabitsTable,
+  ensureUsersTable
+} from '@/lib/db'
 
-// POST /api/habits/[id]/complete - Mark a habit as completed for today
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+function toClientHabit(habit: DbHabit) {
+  return {
+    id: habit.id,
+    title: habit.title,
+    description: habit.description,
+    category: habit.category,
+    streak: habit.streak,
+    completedToday: habit.completed_today,
+    lastCompleted: habit.last_completed,
+    createdAt: habit.created_at,
+    updatedAt: habit.updated_at
+  }
+}
+
+type Params = {
+  params: { id: string }
+}
+
+export async function POST(_req: NextRequest, { params }: Params) {
   try {
-    const id = params.id
-    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    const user = getAuthUserFromCookies()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // This is where you'd typically update the database
-    // Check if already completed today
-    // Update streak, completion date, etc.
+    await ensureUsersTable()
+    await ensureHabitsTable()
 
-    const updatedHabit = {
-      id: parseInt(id),
-      completedToday: true,
-      streak: 8, // Increment streak
-      lastCompleted: today,
-      totalCompletions: 15
-    }
+    const habitId = Number(params.id)
+    const habit = await completeHabitForUser(user.id, habitId)
+    if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ 
-      message: 'Habit marked as completed!',
-      habit: updatedHabit 
-    })
+    return NextResponse.json({ habit: toClientHabit(habit), message: 'Habit marked complete' })
   } catch (error) {
-    console.error('Failed to complete habit:', error)
-    return NextResponse.json(
-      { error: 'Failed to complete habit' },
-      { status: 500 }
-    )
+    console.error('Failed to mark habit complete:', error)
+    return NextResponse.json({ error: 'Failed to mark habit complete' }, { status: 500 })
   }
 }
