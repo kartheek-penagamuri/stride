@@ -69,10 +69,10 @@ export default function HomePage() {
               Log in
             </button>
             <button
-              onClick={() => setIsGoalModalOpen(true)}
+              onClick={() => router.push('/login')}
               className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[var(--accent-strong)] hover:shadow-md"
             >
-              Get Started
+              Sign Up
             </button>
           </div>
 
@@ -108,11 +108,11 @@ export default function HomePage() {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)
-                  setIsGoalModalOpen(true)
+                  router.push('/login')
                 }}
                 className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-center text-sm font-semibold text-white"
               >
-                Get Started
+                Sign Up
               </button>
             </div>
           </div>

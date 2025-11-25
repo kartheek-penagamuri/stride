@@ -26,6 +26,7 @@ import {
 import { CreateHabitRequest, Habit } from '@/lib/types'
 import { GoalInputModal } from '@/components/GoalInputModal'
 import { HabitDetailModal } from '@/components/HabitDetailModal'
+import { AuthForm } from '@/components/AuthForm'
 
 const dateKey = (date: Date) => date.toISOString().slice(0, 10)
 
@@ -82,13 +83,6 @@ export default function Dashboard() {
     title: '',
     description: '',
     category: 'general'
-  })
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
-  const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' })
-  const [authStatus, setAuthStatus] = useState<{ loading: boolean; error: string | null; message: string | null }>({
-    loading: false,
-    error: null,
-    message: null
   })
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null)
@@ -179,41 +173,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setAuthStatus({ loading: true, error: null, message: null })
-
-    const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register'
-    const body =
-      authMode === 'login'
-        ? { email: authForm.email, password: authForm.password }
-        : { email: authForm.email, password: authForm.password, name: authForm.name }
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body)
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setAuthStatus({ loading: false, error: data.error || 'Unable to authenticate.', message: null })
-        return
-      }
-      localStorage.setItem('strideUser', JSON.stringify(data.user))
-      setUser(data.user)
-      setAuthStatus({
-        loading: false,
-        error: null,
-        message: authMode === 'login' ? 'Signed in.' : 'Account created.'
-      })
-      setShowAuthPrompt(false)
-    } catch (error) {
-      console.error('Auth failed:', error)
-      setAuthStatus({ loading: false, error: 'Network error. Please try again.', message: null })
-    }
-  }
 
   const handleLogout = () => {
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).finally(() => {
@@ -291,14 +250,7 @@ export default function Dashboard() {
                   Logout
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setAuthMode('login')}
-                className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]"
-              >
-                Sign In
-              </button>
-            )}
+            ) : null}
             <button
               onClick={openGoalModal}
               className="hidden sm:flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors shadow-sm"
@@ -355,66 +307,20 @@ export default function Dashboard() {
 
         {/* Auth Prompt (if not logged in) */}
         {!user && (
-          <section className="rounded-2xl border border-[var(--border)] bg-white p-6 sm:p-8 shadow-sm">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--ink)] mb-2">Save your progress</h2>
-                <p className="text-[var(--muted)] text-sm max-w-md">
-                  Create an account to sync your habits across devices and keep your streaks alive.
-                </p>
-              </div>
-              <div className="flex gap-3 w-full md:w-auto">
-                <button
-                  onClick={() => setAuthMode('login')}
-                  className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${authMode === 'login' ? 'bg-[var(--ink)] text-white border-[var(--ink)]' : 'bg-white text-[var(--ink)] border-[var(--border)] hover:bg-[var(--page-bg)]'}`}
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => setAuthMode('signup')}
-                  className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${authMode === 'signup' ? 'bg-[var(--ink)] text-white border-[var(--ink)]' : 'bg-white text-[var(--ink)] border-[var(--border)] hover:bg-[var(--page-bg)]'}`}
-                >
-                  Sign Up
-                </button>
-              </div>
+          <section>
+            <div className="mb-6 space-y-2">
+              <h2 className="text-2xl font-bold text-[var(--ink)]">Save your progress</h2>
+              <p className="text-[var(--muted)] max-w-2xl">
+                Create an account to sync your habits across devices and keep your streaks alive. Your data stays secure and accessible only to you.
+              </p>
             </div>
-
-            <form onSubmit={handleAuthSubmit} className="mt-6 max-w-md mx-auto md:mx-0 grid gap-4">
-              {authMode === 'signup' && (
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  value={authForm.name}
-                  onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-                />
-              )}
-              <input
-                type="email"
-                placeholder="Email address"
-                required
-                value={authForm.email}
-                onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                minLength={8}
-                value={authForm.password}
-                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-              />
-              <button
-                type="submit"
-                disabled={authStatus.loading}
-                className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors disabled:opacity-50"
-              >
-                {authStatus.loading ? 'Processing...' : authMode === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-              {authStatus.error && <p className="text-sm text-[var(--danger)] text-center">{authStatus.error}</p>}
-            </form>
+            <AuthForm onSuccess={() => {
+              fetchHabits()
+              const storedUser = localStorage.getItem('strideUser')
+              if (storedUser) {
+                setUser(JSON.parse(storedUser))
+              }
+            }} />
           </section>
         )}
 
@@ -535,67 +441,69 @@ export default function Dashboard() {
       </div>
 
       {/* Manual Create Form Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-scale-in">
-            <h2 className="text-xl font-bold text-[var(--ink)] mb-1">New Habit</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Add a simple habit to your routine.</p>
+      {
+        showCreateForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-scale-in">
+              <h2 className="text-xl font-bold text-[var(--ink)] mb-1">New Habit</h2>
+              <p className="text-sm text-[var(--muted)] mb-6">Add a simple habit to your routine.</p>
 
-            <form onSubmit={handleCreateHabit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Title</label>
-                <input
-                  type="text"
-                  value={newHabit.title}
-                  onChange={(e) => setNewHabit({ ...newHabit, title: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-                  placeholder="e.g., Drink Water"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Description</label>
-                <textarea
-                  value={newHabit.description}
-                  onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-                  placeholder="When and where?"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Category</label>
-                <select
-                  value={newHabit.category}
-                  onChange={(e) => setNewHabit({ ...newHabit, category: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
-                >
-                  <option value="general">General</option>
-                  <option value="health">Health</option>
-                  <option value="fitness">Fitness</option>
-                  <option value="learning">Learning</option>
-                  <option value="productivity">Productivity</option>
-                  <option value="mindfulness">Mindfulness</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--page-bg)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
+              <form onSubmit={handleCreateHabit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Title</label>
+                  <input
+                    type="text"
+                    value={newHabit.title}
+                    onChange={(e) => setNewHabit({ ...newHabit, title: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    placeholder="e.g., Drink Water"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Description</label>
+                  <textarea
+                    value={newHabit.description}
+                    onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    placeholder="When and where?"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Category</label>
+                  <select
+                    value={newHabit.category}
+                    onChange={(e) => setNewHabit({ ...newHabit, category: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                  >
+                    <option value="general">General</option>
+                    <option value="health">Health</option>
+                    <option value="fitness">Fitness</option>
+                    <option value="learning">Learning</option>
+                    <option value="productivity">Productivity</option>
+                    <option value="mindfulness">Mindfulness</option>
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateForm(false)}
+                    className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--page-bg)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <GoalInputModal
         isOpen={showGoalModal}
@@ -611,6 +519,6 @@ export default function Dashboard() {
         isOpen={showHabitDetail}
         onClose={closeHabitDetail}
       />
-    </div>
+    </div >
   )
 }

@@ -415,7 +415,7 @@ export const GoalInputModal: React.FC<GoalInputModalProps> = ({
         .filter(habit => state.selectedHabitIds.includes(habit.id))
         .map((habit): CreateHabitRequest => ({
           title: habit.title,
-          description: `After ${habit.cue}, ${habit.action}, and then ${habit.reward}`,
+          description: habit.action,
           category: habit.category
         }))
 
