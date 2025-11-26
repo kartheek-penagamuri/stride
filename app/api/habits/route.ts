@@ -2,25 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUserFromCookies } from '@/lib/auth'
 import {
   createHabitForUser,
-  DbHabit,
   ensureHabitsTable,
   ensureUsersTable,
-  listHabitsForUser
+  listHabitsForUser,
+  refreshHabitCompletionStatus
 } from '@/lib/db'
-
-function toClientHabit(habit: DbHabit) {
-  return {
-    id: habit.id,
-    title: habit.title,
-    description: habit.description,
-    category: habit.category,
-    streak: habit.streak,
-    completedToday: habit.completed_today,
-    lastCompleted: habit.last_completed,
-    createdAt: habit.created_at,
-    updatedAt: habit.updated_at
-  }
-}
+import { toClientHabit } from './utils'
 
 export async function GET() {
   try {
@@ -31,6 +18,7 @@ export async function GET() {
 
     await ensureUsersTable()
     await ensureHabitsTable()
+    await refreshHabitCompletionStatus(user.id)
 
     const habits = await listHabitsForUser(user.id)
     return NextResponse.json({ habits: habits.map(toClientHabit) })

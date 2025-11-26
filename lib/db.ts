@@ -412,6 +412,28 @@ export async function ensureHabitCompletionsTable() {
 }
 
 /**
+ * Ensure completed_today reflects whether last_completed is today (UTC)
+ * This keeps daily completion state accurate across sessions/logins.
+ */
+export async function refreshHabitCompletionStatus(userId: number): Promise<void> {
+  try {
+    run(
+      `
+      UPDATE habits
+      SET completed_today = CASE
+        WHEN last_completed IS NOT NULL AND DATE(last_completed) = DATE('now') THEN 1
+        ELSE 0
+      END
+      WHERE user_id = ?
+    `,
+      [userId]
+    )
+  } catch (error) {
+    throw handleDatabaseError(error, 'refreshHabitCompletionStatus')
+  }
+}
+
+/**
  * List all habits for a user
  * @param userId User ID to query habits for
  * @returns Array of habits ordered by created_at DESC

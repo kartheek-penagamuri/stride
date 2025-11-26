@@ -393,6 +393,49 @@ describe('Habits Table Operations', () => {
       expect(completed).toBeNull()
     })
   })
+
+  describe('refreshHabitCompletionStatus', () => {
+    it('should clear completed_today when last_completed is before today', async () => {
+      const { createHabitForUser, refreshHabitCompletionStatus, findHabitById } = await import('./db')
+
+      const habit = await createHabitForUser(testUserId, {
+        title: 'Old Completion Habit',
+        description: 'Completed yesterday'
+      })
+
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+      const db = getDatabase()
+      db.prepare('UPDATE habits SET completed_today = 1, last_completed = ? WHERE id = ?')
+        .run(yesterdayStr, habit.id)
+
+      await refreshHabitCompletionStatus(testUserId)
+      const updated = await findHabitById(testUserId, habit.id)
+
+      expect(updated?.completed_today).toBe(0)
+    })
+
+    it('should mark completed_today when last_completed is today', async () => {
+      const { createHabitForUser, refreshHabitCompletionStatus, findHabitById } = await import('./db')
+
+      const habit = await createHabitForUser(testUserId, {
+        title: 'Today Completion Habit',
+        description: 'Completed today'
+      })
+
+      const todayStr = new Date().toISOString().split('T')[0]
+      const db = getDatabase()
+      db.prepare('UPDATE habits SET completed_today = 0, last_completed = ? WHERE id = ?')
+        .run(todayStr, habit.id)
+
+      await refreshHabitCompletionStatus(testUserId)
+      const updated = await findHabitById(testUserId, habit.id)
+
+      expect(updated?.completed_today).toBe(1)
+    })
+  })
 })
 
 describe('Habit Completions Table Operations', () => {

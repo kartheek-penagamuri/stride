@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUserFromCookies } from '@/lib/auth'
 import {
-  DbHabit,
   deleteHabitForUser,
   ensureHabitsTable,
   ensureUsersTable,
   findHabitById,
+  refreshHabitCompletionStatus,
   updateHabitForUser
 } from '@/lib/db'
-
-function toClientHabit(habit: DbHabit) {
-  return {
-    id: habit.id,
-    title: habit.title,
-    description: habit.description,
-    category: habit.category,
-    streak: habit.streak,
-    completedToday: habit.completed_today,
-    lastCompleted: habit.last_completed,
-    createdAt: habit.created_at,
-    updatedAt: habit.updated_at
-  }
-}
+import { toClientHabit } from '../utils'
 
 type Params = {
   params: { id: string }
@@ -34,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     await ensureUsersTable()
     await ensureHabitsTable()
+    await refreshHabitCompletionStatus(user.id)
 
     const habitId = Number(params.id)
     const habit = await findHabitById(user.id, habitId)
