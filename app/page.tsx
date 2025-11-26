@@ -10,8 +10,7 @@ import {
   Sparkles,
   Menu,
   X,
-  ChevronDown,
-  Star
+  ChevronDown
 } from 'lucide-react'
 import { GoalInputModal } from '@/components/GoalInputModal'
 
@@ -285,49 +284,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        {/* Testimonials */}
-        <section className="py-24 bg-white border-y border-[var(--border)]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-[var(--ink)] text-center mb-16">
-              Trusted by calm achievers.
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                {
-                  quote: "I finally stopped beating myself up for missing days. Stride makes it easy to get back on track.",
-                  author: "Sarah J.",
-                  role: "Designer"
-                },
-                {
-                  quote: "The habit stacking approach changed how I view my morning routine. It feels effortless now.",
-                  author: "Mark T.",
-                  role: "Developer"
-                },
-                {
-                  quote: "Less anxiety, more doing. The AI suggestions were surprisingly spot on for my situation.",
-                  author: "Elena R.",
-                  role: "Student"
-                }
-              ].map((t, i) => (
-                <div key={i} className="p-8 rounded-2xl bg-[var(--page-bg)] border border-[var(--border)]">
-                  <div className="flex gap-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="h-4 w-4 fill-[var(--warm)] text-[var(--warm)]" />
-                    ))}
-                  </div>
-                  <p className="text-[var(--ink)] mb-6 font-medium">&ldquo;{t.quote}&rdquo;</p>
-                  <div>
-                    <div className="font-semibold text-[var(--ink)]">{t.author}</div>
-                    <div className="text-sm text-[var(--muted)]">{t.role}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-
 
         {/* FAQ */}
         <section id="faq" className="py-24 bg-white border-t border-[var(--border)]">
