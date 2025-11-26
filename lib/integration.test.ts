@@ -1,15 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
-import { closeDatabase, getDatabase } from './db'
+import { closeDatabase, getDatabase, getDatabaseFilePath } from './db'
 import { createUserAccount, authenticateUser } from './auth'
 import fs from 'fs'
 
 // Helper function to delete database file with retries for Windows file locking
 function deleteDbFile() {
-  if (!fs.existsSync('stride.db')) return
+  const dbFilePath = getDatabaseFilePath()
+  if (!fs.existsSync(dbFilePath)) return
   
   try {
-    fs.unlinkSync('stride.db')
-  } catch (err) {
+    fs.unlinkSync(dbFilePath)
+  } catch {
     // If file is still locked, wait a bit and try again
     const maxRetries = 5
     for (let i = 0; i < maxRetries; i++) {
@@ -17,9 +18,9 @@ function deleteDbFile() {
         // Wait 100ms
         const start = Date.now()
         while (Date.now() - start < 100) {}
-        fs.unlinkSync('stride.db')
+        fs.unlinkSync(dbFilePath)
         return
-      } catch (retryErr) {
+      } catch {
         if (i === maxRetries - 1) {
           // File is still locked, just continue - the database will be reused
           return
@@ -324,7 +325,7 @@ describe('Integration Tests', () => {
       expect(habits).toHaveLength(2)
 
       // Delete the user directly via database
-      const db = new Database('stride.db')
+      const db = new Database(getDatabaseFilePath())
       db.pragma('foreign_keys = ON')
       db.prepare('DELETE FROM users WHERE id = ?').run(testUserId)
       db.close()
@@ -521,7 +522,7 @@ describe('Integration Tests', () => {
       yesterday.setDate(yesterday.getDate() - 1)
       const yesterdayStr = yesterday.toISOString().split('T')[0]
       
-      const db = new Database('stride.db')
+      const db = new Database(getDatabaseFilePath())
       db.pragma('foreign_keys = ON')
       db.prepare('UPDATE habits SET streak = 1, completed_today = 0, last_completed = ? WHERE id = ?')
         .run(yesterdayStr, habit.id)
@@ -571,7 +572,7 @@ describe('Integration Tests', () => {
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
       const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0]
       
-      const db = new Database('stride.db')
+      const db = new Database(getDatabaseFilePath())
       db.pragma('foreign_keys = ON')
       db.prepare('UPDATE habits SET streak = 5, completed_today = 1, last_completed = ? WHERE id = ?')
         .run(threeDaysAgoStr, habit.id)
@@ -644,7 +645,7 @@ describe('Integration Tests', () => {
       })
 
       // Insert completions with specific dates
-      const db = new Database('stride.db')
+      const db = new Database(getDatabaseFilePath())
       db.pragma('foreign_keys = ON')
       
       const today = new Date()
@@ -804,7 +805,7 @@ describe('Integration Tests', () => {
       })
 
       // Insert completions with specific timestamps
-      const db = new Database('stride.db')
+      const db = new Database(getDatabaseFilePath())
       db.pragma('foreign_keys = ON')
       
       const time1 = new Date('2024-01-01T10:00:00').toISOString()

@@ -1,7 +1,11 @@
 import Database from 'better-sqlite3'
+import fs from 'fs'
+import path from 'path'
 
 let db: Database.Database | null = null
 let isInitialized = false
+const DEFAULT_DB_FILENAME = process.env.SQLITE_DB_FILENAME || 'stride.db'
+const DB_FILE_PATH = resolveDatabaseFilePath()
 
 /**
  * Custom error class for database operations
@@ -44,54 +48,84 @@ export const ERROR_MESSAGES = {
   CONSTRAINT_VIOLATION: 'Database constraint violation'
 } as const
 
+function resolveDatabaseFilePath(): string {
+  if (process.env.SQLITE_DB_PATH) {
+    return resolveWorkspacePath(process.env.SQLITE_DB_PATH)
+  }
+
+  if (process.env.SQLITE_DB_DIRECTORY) {
+    return path.join(resolveWorkspacePath(process.env.SQLITE_DB_DIRECTORY), DEFAULT_DB_FILENAME)
+  }
+
+  const defaultDirectory = process.env.VERCEL ? '/tmp' : process.cwd()
+  return path.join(defaultDirectory, DEFAULT_DB_FILENAME)
+}
+
+function resolveWorkspacePath(targetPath: string): string {
+  return path.isAbsolute(targetPath) ? targetPath : path.resolve(process.cwd(), targetPath)
+}
+
+function ensureDatabaseDirectoryExists(): void {
+  const directory = path.dirname(DB_FILE_PATH)
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true })
+  }
+}
+
+export function getDatabaseFilePath(): string {
+  return DB_FILE_PATH
+}
+
 /**
  * Map SQLite errors to DatabaseError with descriptive messages
  * @param error The original error from SQLite
  * @param context Additional context about the operation
  * @returns DatabaseError with appropriate code and message
  */
-function handleDatabaseError(error: any, context?: string): DatabaseError {
-  const errorMessage = error.message || ''
-  const errorCode = error.code || ''
+function handleDatabaseError(error: unknown, context?: string): DatabaseError {
+  const errorObject = error as { message?: unknown; code?: unknown }
+  const errorMessage = typeof errorObject.message === 'string' ? errorObject.message : ''
+  const errorCode = typeof errorObject.code === 'string' ? errorObject.code : ''
+  const originalError = error instanceof Error ? error : undefined
 
   // Log the error for debugging
-  console.error('Database error:', errorMessage, context ? `(${context})` : '')
+  console.error('Database error:', errorMessage || error, context ? `(${context})` : '')
 
   // Handle unique constraint violations
   if (errorCode === 'SQLITE_CONSTRAINT_UNIQUE' || errorMessage.includes('UNIQUE constraint failed')) {
     if (errorMessage.includes('users.email')) {
-      return new DatabaseError(ERROR_MESSAGES.DUPLICATE_EMAIL, ERROR_CODES.UNIQUE_CONSTRAINT, error)
+      return new DatabaseError(ERROR_MESSAGES.DUPLICATE_EMAIL, ERROR_CODES.UNIQUE_CONSTRAINT, originalError)
     }
-    return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.UNIQUE_CONSTRAINT, error)
+    return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.UNIQUE_CONSTRAINT, originalError)
   }
 
   // Handle foreign key violations
   if (errorCode === 'SQLITE_CONSTRAINT_FOREIGNKEY' || errorMessage.includes('FOREIGN KEY constraint failed')) {
-    return new DatabaseError(ERROR_MESSAGES.FOREIGN_KEY_VIOLATION, ERROR_CODES.FOREIGN_KEY, error)
+    return new DatabaseError(ERROR_MESSAGES.FOREIGN_KEY_VIOLATION, ERROR_CODES.FOREIGN_KEY, originalError)
   }
 
   // Handle not null violations
   if (errorCode === 'SQLITE_CONSTRAINT_NOTNULL' || errorMessage.includes('NOT NULL constraint failed')) {
-    return new DatabaseError(ERROR_MESSAGES.NOT_NULL_VIOLATION, ERROR_CODES.NOT_NULL, error)
+    return new DatabaseError(ERROR_MESSAGES.NOT_NULL_VIOLATION, ERROR_CODES.NOT_NULL, originalError)
   }
 
   // Handle general constraint violations
   if (errorCode === 'SQLITE_CONSTRAINT' || errorMessage.includes('constraint')) {
-    return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.CONSTRAINT, error)
+    return new DatabaseError(ERROR_MESSAGES.CONSTRAINT_VIOLATION, ERROR_CODES.CONSTRAINT, originalError)
   }
 
   // Handle database locked errors
   if (errorCode === 'SQLITE_BUSY' || errorMessage.includes('database is locked')) {
-    return new DatabaseError(ERROR_MESSAGES.DATABASE_LOCKED, ERROR_CODES.LOCKED, error)
+    return new DatabaseError(ERROR_MESSAGES.DATABASE_LOCKED, ERROR_CODES.LOCKED, originalError)
   }
 
   // Handle file access errors
   if (errorCode === 'SQLITE_CANTOPEN' || errorMessage.includes('unable to open database')) {
-    return new DatabaseError(ERROR_MESSAGES.FILE_ACCESS, ERROR_CODES.FILE_ACCESS, error)
+    return new DatabaseError(ERROR_MESSAGES.FILE_ACCESS, ERROR_CODES.FILE_ACCESS, originalError)
   }
 
   // Default error
-  return new DatabaseError(errorMessage || 'Database operation failed', ERROR_CODES.UNKNOWN, error)
+  return new DatabaseError(errorMessage || 'Database operation failed', ERROR_CODES.UNKNOWN, originalError)
 }
 
 /**
@@ -175,12 +209,13 @@ export function getDatabase(): Database.Database {
   if (!db) {
     try {
       // Initialize SQLite database file
-      db = new Database('stride.db')
+      ensureDatabaseDirectoryExists()
+      db = new Database(DB_FILE_PATH)
 
       // Enable foreign key constraints
       db.pragma('foreign_keys = ON')
 
-      console.log('SQLite database initialized: stride.db')
+      console.log(`SQLite database initialized: ${DB_FILE_PATH}`)
 
       // Call initializeDatabase() on first getDatabase() call
       // Ensure tables exist before any operations
@@ -210,7 +245,7 @@ export function closeDatabase(): void {
  * @param params Parameters to bind to the query
  * @returns Array of result rows
  */
-export function query<T = unknown>(sql: string, params?: any[]): T[] {
+export function query<T = unknown>(sql: string, params?: unknown[]): T[] {
   try {
     const database = getDatabase()
     const stmt = database.prepare(sql)
@@ -226,7 +261,7 @@ export function query<T = unknown>(sql: string, params?: any[]): T[] {
  * @param params Parameters to bind to the query
  * @returns Single result row or undefined
  */
-export function get<T = unknown>(sql: string, params?: any[]): T | undefined {
+export function get<T = unknown>(sql: string, params?: unknown[]): T | undefined {
   try {
     const database = getDatabase()
     const stmt = database.prepare(sql)
@@ -242,7 +277,7 @@ export function get<T = unknown>(sql: string, params?: any[]): T | undefined {
  * @param params Parameters to bind to the query
  * @returns Object with lastID and changes count
  */
-export function run(sql: string, params?: any[]): { lastID: number; changes: number } {
+export function run(sql: string, params?: unknown[]): { lastID: number; changes: number } {
   try {
     const database = getDatabase()
     const stmt = database.prepare(sql)
@@ -322,6 +357,15 @@ export async function findUserByEmail(email: string): Promise<DbUser | null> {
     return user || null
   } catch (error) {
     throw handleDatabaseError(error, 'findUserByEmail')
+  }
+}
+
+export async function findUserById(id: number): Promise<DbUser | null> {
+  try {
+    const user = get<DbUser>('SELECT * FROM users WHERE id = ? LIMIT 1', [id])
+    return user || null
+  } catch (error) {
+    throw handleDatabaseError(error, 'findUserById')
   }
 }
 

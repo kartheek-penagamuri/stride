@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import { findUserByEmail, insertUser, closeDatabase, getDatabase } from './db'
+import { findUserByEmail, insertUser, closeDatabase, getDatabase, getDatabaseFilePath } from './db'
 import fs from 'fs'
 
 // Helper function to delete database file with retries for Windows file locking
 function deleteDbFile() {
-  if (!fs.existsSync('stride.db')) return
+  const dbFilePath = getDatabaseFilePath()
+  if (!fs.existsSync(dbFilePath)) return
   
   try {
-    fs.unlinkSync('stride.db')
-  } catch (err) {
+    fs.unlinkSync(dbFilePath)
+  } catch {
     // If file is still locked, wait a bit and try again
     const maxRetries = 5
     for (let i = 0; i < maxRetries; i++) {
@@ -16,9 +17,9 @@ function deleteDbFile() {
         // Wait 100ms
         const start = Date.now()
         while (Date.now() - start < 100) {}
-        fs.unlinkSync('stride.db')
+        fs.unlinkSync(dbFilePath)
         return
-      } catch (retryErr) {
+      } catch {
         if (i === maxRetries - 1) {
           // File is still locked, just continue - the database will be reused
           return
@@ -194,12 +195,12 @@ describe('Habits Table Operations', () => {
     it('should list all habits for a user', async () => {
       const { createHabitForUser, listHabitsForUser } = await import('./db')
       
-      const habit1 = await createHabitForUser(testUserId, {
+      await createHabitForUser(testUserId, {
         title: 'Habit 1',
         description: 'Description 1'
       })
       
-      const habit2 = await createHabitForUser(testUserId, {
+      await createHabitForUser(testUserId, {
         title: 'Habit 2',
         description: 'Description 2'
       })
