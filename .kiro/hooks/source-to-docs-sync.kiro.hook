@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Source Files to Docs Sync",
+  "description": "Monitors all source files in the repository (TypeScript, TSX, JavaScript files) and triggers the agent to update steering documentation when changes are detected",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source files have been modified. Please review the changes and update the steering documentation in the docs folder to reflect any architectural changes, new patterns, updated conventions, or modifications to the tech stack. Ensure the documentation remains accurate and helpful for development."
+  }
+}
