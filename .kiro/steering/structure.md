@@ -1,4 +1,8 @@
-# Project Structure
+---
+inclusion: always
+---
+
+# Project Structure & Conventions
 
 ## Directory Organization
 
@@ -27,64 +31,106 @@ stride/
 └── stride.db             # SQLite database file (gitignored)
 ```
 
-## Key Conventions
+## API Route Patterns
 
-### API Routes
+When creating or modifying API routes:
 
-- Follow REST conventions: `GET`, `POST`, `PUT`, `DELETE`
-- Use Next.js route handlers (`route.ts` files)
-- Return `NextResponse.json()` with appropriate status codes
-- Check authentication via `getAuthUserFromCookies()` first
-- Handle errors with try-catch and return 500 on failure
-- Dynamic routes use `[id]` folder naming
+1. **Structure**: Use Next.js route handlers in `route.ts` files
+2. **Authentication**: Always check auth first with `getAuthUserFromCookies()` - return 401 if unauthorized
+3. **HTTP Methods**: Follow REST conventions (GET, POST, PUT, DELETE)
+4. **Responses**: Use `NextResponse.json()` with appropriate status codes
+5. **Error Handling**: Wrap in try-catch, return `{ error: string }` with 500 on failure
+6. **Dynamic Routes**: Use `[id]` folder naming (e.g., `app/api/habits/[id]/route.ts`)
 
-### Database Layer (`lib/db.ts`)
+Example pattern:
+```typescript
+export async function GET(request: Request) {
+  const user = await getAuthUserFromCookies();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  
+  try {
+    // Your logic here
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+```
 
-- All database operations are synchronous (better-sqlite3)
-- Functions are exported as async for API compatibility
-- Custom error handling with `DatabaseError` class
-- Type-safe with `DbUser`, `DbHabit`, `DbHabitCompletion` types
-- Automatic table initialization on first access
-- Use parameterized queries to prevent SQL injection
+## Database Layer (`lib/db.ts`)
 
-### Components
+- **Synchronous Operations**: All database operations use better-sqlite3 synchronously
+- **Async Exports**: Functions exported as async for API route compatibility
+- **Type Safety**: Use `DbUser`, `DbHabit`, `DbHabitCompletion` types
+- **Error Handling**: Throw `DatabaseError` with code and message
+- **Security**: Always use parameterized queries to prevent SQL injection
+- **Initialization**: Tables auto-initialize on first access
 
-- Functional components with TypeScript
-- Props interfaces defined inline or at top of file
-- Use `React.FC<PropsType>` for component typing
-- Tailwind classes for styling
-- Glass morphism effect via `.glass` class
+When adding database functions, follow existing patterns and maintain type safety.
 
-### Types
+## Component Conventions
 
-- Database types prefixed with `Db` (e.g., `DbHabit`)
-- API request/response types suffixed (e.g., `CreateHabitRequest`)
-- Client-facing types without prefix (e.g., `Habit`)
-- Enums for fixed values (e.g., `AtomicPrinciple`)
+- **Type**: Functional components with TypeScript
+- **Props**: Define interfaces inline or at top of file
+- **Typing**: Use `React.FC<PropsType>` or implicit typing
+- **Styling**: Use Tailwind utility classes
+- **Glass Effect**: Apply `.glass` class for glass morphism
+- **Icons**: Use Lucide React icons
+- **State Management**: Use React hooks (useState, useEffect, custom hooks)
 
-### Authentication
+## Type Naming Conventions
 
-- Cookie-based: `stride_user` contains `{ id, email, name }`
-- Helper: `getAuthUserFromCookies()` returns user or null
-- All protected API routes check auth first
-- Return 401 for unauthorized requests
+Follow these prefixes/suffixes consistently:
 
-### Error Handling
+- **Database types**: `Db` prefix (e.g., `DbHabit`, `DbUser`)
+- **API request types**: `Request` suffix (e.g., `CreateHabitRequest`)
+- **API response types**: `Response` suffix (e.g., `GenerateHabitsResponse`)
+- **Client types**: No prefix (e.g., `Habit`, `User`)
+- **Enums**: PascalCase (e.g., `AtomicPrinciple`, `HabitCategory`)
 
-- API routes: Return JSON with `{ error: string }` and status code
-- Database: Throw `DatabaseError` with code and message
-- Client: Display user-friendly error messages
+## Authentication Flow
 
-### Testing
+- **Cookie**: `stride_user` contains `{ id, email, name }`
+- **Helper**: `getAuthUserFromCookies()` returns user object or null
+- **Protected Routes**: Check auth at the start of every protected API route
+- **Unauthorized**: Return 401 status with error message
+- **Password Hashing**: Use bcryptjs with 12 rounds
 
-- Test files: `*.test.ts` alongside source files
-- Use Vitest with sequential execution
-- Integration tests in `lib/integration.test.ts`
-- Property-based tests with `fast-check`
+## Error Handling Strategy
 
-## File Naming
+- **API Routes**: Return JSON `{ error: string }` with appropriate status code
+- **Database**: Throw `DatabaseError` with code and message properties
+- **Client Side**: Display user-friendly error messages in UI
+- **Logging**: Log errors to console for debugging
 
-- React components: PascalCase (e.g., `HabitStack.tsx`)
-- Utilities/hooks: camelCase (e.g., `useHabits.ts`)
-- API routes: `route.ts` in folder structure
-- Types: `types.ts` or `index.ts` in types folder
+## Testing Conventions
+
+- **Location**: Place `*.test.ts` files alongside source files
+- **Framework**: Use Vitest with sequential execution (important for SQLite on Windows)
+- **Integration Tests**: Keep in `lib/integration.test.ts`
+- **Property-Based**: Use `fast-check` for property-based testing
+- **Database**: Tests should handle database initialization and cleanup
+
+## File Naming Rules
+
+- **React Components**: PascalCase (e.g., `HabitStack.tsx`, `GoalForm.tsx`)
+- **Utilities/Hooks**: camelCase (e.g., `useHabits.ts`, `api.ts`)
+- **API Routes**: Always `route.ts` in appropriate folder structure
+- **Types**: `types.ts` or `index.ts` in types folder
+- **Tests**: `*.test.ts` matching the source file name
+
+## Path Aliases
+
+Use `@/*` to reference project root (configured in `tsconfig.json`):
+```typescript
+import { db } from '@/lib/db';
+import { Habit } from '@/lib/types';
+```
+
+## Code Organization Principles
+
+1. **Separation of Concerns**: Keep database logic in `lib/db.ts`, API logic in route handlers, UI in components
+2. **Reusability**: Extract common logic into utilities and hooks
+3. **Type Safety**: Maintain strict TypeScript typing throughout
+4. **Single Responsibility**: Each file/function should have one clear purpose
+5. **DRY**: Avoid duplication - extract shared code into utilities
