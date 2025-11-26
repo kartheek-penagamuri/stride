@@ -32,7 +32,8 @@ export async function GET() {
     await refreshHabitCompletionStatus(user.id)
 
     const habits = await listHabitsForUser(user.id)
-    return NextResponse.json({ habits: habits.map(toClientHabit) })
+    const clientHabits = await Promise.all(habits.map(h => toClientHabit(h)))
+    return NextResponse.json({ habits: clientHabits })
   } catch (error) {
     console.error('Failed to fetch habits:', error)
     return NextResponse.json({ error: 'Failed to fetch habits' }, { status: 500 })
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       category: category?.trim() || 'general'
     })
 
-    return NextResponse.json({ habit: toClientHabit(habit) }, { status: 201 })
+    return NextResponse.json({ habit: await toClientHabit(habit) }, { status: 201 })
   } catch (error) {
     console.error('Failed to create habit:', error)
     return NextResponse.json({ error: 'Failed to create habit' }, { status: 500 })

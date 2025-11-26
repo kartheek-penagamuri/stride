@@ -12,6 +12,7 @@
 - File-based database (`stride.db` in project root)
 - Zero configuration, automatic initialization
 - Foreign key constraints enabled
+- Date handling uses local timezone for user-facing features (streaks, completions)
 
 ## Styling & UI
 

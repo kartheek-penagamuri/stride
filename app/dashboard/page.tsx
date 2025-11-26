@@ -43,9 +43,10 @@ const normalizeDateStrings = (dates?: string[]) =>
   new Set(
     (dates || [])
       .map((d) => {
-        const parsed = new Date(d)
-        if (Number.isNaN(parsed.getTime())) return null
-        return dateKey(parsed)
+        // Extract just the date portion (YYYY-MM-DD) to avoid timezone issues
+        // Database stores as "YYYY-MM-DD HH:MM:SS" in UTC
+        const dateOnly = d.slice(0, 10)
+        return dateOnly
       })
       .filter(Boolean) as string[]
   )

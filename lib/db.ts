@@ -461,16 +461,23 @@ export async function ensureHabitCompletionsTable() {
  */
 export async function refreshHabitCompletionStatus(userId: number): Promise<void> {
   try {
+    // Calculate today's date in local timezone
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const todayDateString = `${year}-${month}-${day}`
+    
     run(
       `
       UPDATE habits
       SET completed_today = CASE
-        WHEN last_completed IS NOT NULL AND DATE(last_completed) = DATE('now') THEN 1
+        WHEN last_completed IS NOT NULL AND last_completed = ? THEN 1
         ELSE 0
       END
       WHERE user_id = ?
     `,
-      [userId]
+      [todayDateString, userId]
     )
   } catch (error) {
     throw handleDatabaseError(error, 'refreshHabitCompletionStatus')
@@ -626,11 +633,15 @@ export async function recordHabitCompletion(
   habitId: number
 ): Promise<DbHabitCompletion> {
   try {
-    // Insert the completion record
+    // Get current local timestamp in ISO format
+    const now = new Date()
+    const localTimestamp = now.toISOString().replace('T', ' ').slice(0, 19)
+    
+    // Insert the completion record with explicit local timestamp
     const result = run(
-      `INSERT INTO habit_completions (habit_id, user_id)
-       VALUES (?, ?)`,
-      [habitId, userId]
+      `INSERT INTO habit_completions (habit_id, user_id, completed_at)
+       VALUES (?, ?, ?)`,
+      [habitId, userId, localTimestamp]
     )
 
     // Get the inserted completion using last_insert_rowid()
@@ -778,9 +789,12 @@ export async function completeHabitForUser(
         return null
       }
 
-      // Calculate today's date in YYYY-MM-DD format
+      // Calculate today's date in YYYY-MM-DD format using local timezone
       const today = new Date()
-      const todayDateString = today.toISOString().slice(0, 10)
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      const todayDateString = `${year}-${month}-${day}`
 
       // Determine new streak based on last_completed date
       let newStreak = 1
@@ -801,6 +815,12 @@ export async function completeHabitForUser(
       }
       // If last_completed is null: reset streak to 1 (already set above)
 
+      // Get current local timestamp for completion record in YYYY-MM-DD HH:MM:SS format
+      const hours = String(today.getHours()).padStart(2, '0')
+      const minutes = String(today.getMinutes()).padStart(2, '0')
+      const seconds = String(today.getSeconds()).padStart(2, '0')
+      const localTimestamp = `${todayDateString} ${hours}:${minutes}:${seconds}`
+      
       // Update habit with new streak, completed_today=1, last_completed=today
       run(
         `UPDATE habits
@@ -812,11 +832,11 @@ export async function completeHabitForUser(
         [newStreak, todayDateString, userId, habitId]
       )
 
-      // Call recordHabitCompletion() to create completion record
+      // Create completion record with explicit local timestamp
       run(
-        `INSERT INTO habit_completions (habit_id, user_id)
-         VALUES (?, ?)`,
-        [habitId, userId]
+        `INSERT INTO habit_completions (habit_id, user_id, completed_at)
+         VALUES (?, ?, ?)`,
+        [habitId, userId, localTimestamp]
       )
 
       // Return updated DbHabit

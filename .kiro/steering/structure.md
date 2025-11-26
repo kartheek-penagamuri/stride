@@ -28,6 +28,8 @@ stride/
 │   ├── types.ts         # Shared type definitions
 │   └── constants.ts     # App-wide constants
 ├── types/                # Additional TypeScript types
+├── scripts/              # Utility scripts
+│   └── seed-completions.ts  # Seed habit completion data for testing
 └── stride.db             # SQLite database file (gitignored)
 ```
 
@@ -41,6 +43,7 @@ When creating or modifying API routes:
 4. **Responses**: Use `NextResponse.json()` with appropriate status codes
 5. **Error Handling**: Wrap in try-catch, return `{ error: string }` with 500 on failure
 6. **Dynamic Routes**: Use `[id]` folder naming (e.g., `app/api/habits/[id]/route.ts`)
+7. **Data Transformation**: Use `toClientHabit()` utility to transform `DbHabit` to client `Habit` type (includes completion history)
 
 Example pattern:
 ```typescript
@@ -57,6 +60,29 @@ export async function GET(request: Request) {
 }
 ```
 
+### Habit API Utilities
+
+The `app/api/habits/utils.ts` file provides helper functions for habit-related API routes:
+
+- **`toClientHabit(habit: DbHabit): Promise<Habit>`**: Transforms a database habit record into a client-friendly format
+  - Fetches completion history from `habit_completions` table
+  - Calculates `totalCompletions` count
+  - Includes `completedDates` array for visualization
+  - Determines `completedToday` status using local timezone
+  - **Important**: This is an async function that queries the database, so always use `await`
+
+Example usage:
+```typescript
+const dbHabit = await findHabitById(userId, habitId)
+const clientHabit = await toClientHabit(dbHabit)
+return NextResponse.json({ habit: clientHabit })
+
+// For multiple habits:
+const dbHabits = await listHabitsForUser(userId)
+const clientHabits = await Promise.all(dbHabits.map(h => toClientHabit(h)))
+return NextResponse.json({ habits: clientHabits })
+```
+
 ## Database Layer (`lib/db.ts`)
 
 - **Synchronous Operations**: All database operations use better-sqlite3 synchronously
@@ -65,6 +91,40 @@ export async function GET(request: Request) {
 - **Error Handling**: Throw `DatabaseError` with code and message
 - **Security**: Always use parameterized queries to prevent SQL injection
 - **Initialization**: Tables auto-initialize on first access
+- **Timezone Handling**: Date calculations use local timezone (not UTC) for streak tracking and completion dates. All timestamps are explicitly set using local time rather than relying on database defaults.
+- **Completion History**: The `habit_completions` table stores detailed completion records; use `getHabitCompletions()` to retrieve history
+
+### Date Handling Convention
+
+When working with dates in the database layer:
+
+```typescript
+// CORRECT: Use local timezone for date strings (date-only)
+const today = new Date()
+const year = today.getFullYear()
+const month = String(today.getMonth() + 1).padStart(2, '0')
+const day = String(today.getDate()).padStart(2, '0')
+const todayDateString = `${year}-${month}-${day}`
+
+// CORRECT: Use local timezone for timestamps (date + time)
+const today = new Date()
+const year = today.getFullYear()
+const month = String(today.getMonth() + 1).padStart(2, '0')
+const day = String(today.getDate()).padStart(2, '0')
+const hours = String(today.getHours()).padStart(2, '0')
+const minutes = String(today.getMinutes()).padStart(2, '0')
+const seconds = String(today.getSeconds()).padStart(2, '0')
+const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+// Result: "YYYY-MM-DD HH:MM:SS" in local timezone
+
+// INCORRECT: Don't use toISOString() for timestamps or dates
+const todayDateString = today.toISOString().slice(0, 10) // This uses UTC!
+const localTimestamp = now.toISOString().replace('T', ' ').slice(0, 19) // This also uses UTC!
+```
+
+This ensures habit completions and streaks align with the user's local day boundaries, not UTC midnight. All completion timestamps are stored in local time for consistency with the user's experience.
+
+**Important**: Always construct timestamps from local time components (`getFullYear()`, `getMonth()`, `getDate()`, `getHours()`, etc.) rather than using `toISOString()` which converts to UTC.
 
 When adding database functions, follow existing patterns and maintain type safety.
 
@@ -87,6 +147,18 @@ Follow these prefixes/suffixes consistently:
 - **API response types**: `Response` suffix (e.g., `GenerateHabitsResponse`)
 - **Client types**: No prefix (e.g., `Habit`, `User`)
 - **Enums**: PascalCase (e.g., `AtomicPrinciple`, `HabitCategory`)
+
+### Type Transformation Pattern
+
+The application uses a clear separation between database types and client types:
+
+- **`DbHabit`**: Raw database record with minimal fields (from `lib/db.ts`)
+- **`Habit`**: Enriched client type with computed fields (from `lib/types.ts`)
+  - Includes `totalCompletions` (count of all completions)
+  - Includes `completedDates` (array of completion timestamps)
+  - Includes `completedToday` (boolean computed from `last_completed`)
+
+Always transform `DbHabit` to `Habit` using `toClientHabit()` before sending to the client.
 
 ## Authentication Flow
 
@@ -134,3 +206,34 @@ import { Habit } from '@/lib/types';
 3. **Type Safety**: Maintain strict TypeScript typing throughout
 4. **Single Responsibility**: Each file/function should have one clear purpose
 5. **DRY**: Avoid duplication - extract shared code into utilities
+
+## Development Scripts
+
+### Seed Completion Data
+
+**Location**: `scripts/seed-completions.ts`
+
+**Purpose**: Populate existing habits with realistic completion history for testing and demonstration purposes
+
+**Usage**:
+```bash
+npx tsx scripts/seed-completions.ts
+```
+
+**Behavior**:
+- Reads all habits from the database
+- **Backdates all habits to 7 days ago** to ensure they have sufficient history
+- Generates 3-5 random completion records per habit
+- Always includes today and yesterday for recent activity
+- Adds random completion dates from the past 7 days
+- Calculates and updates streak values based on consecutive completions
+- Updates `completed_today` flag appropriately
+- Adds realistic timestamps (8 AM - 10 PM) to completion records
+
+**Use Cases**:
+- Testing UI with realistic data
+- Demonstrating streak calculations
+- Populating demo databases
+- Validating completion history features
+
+**Note**: This script directly manipulates the database (including backdating `created_at` timestamps) and should only be used in development/testing environments.

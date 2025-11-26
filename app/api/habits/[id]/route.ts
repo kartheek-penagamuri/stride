@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const habit = await findHabitById(user.id, habitId)
     if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ habit: toClientHabit(habit) })
+    return NextResponse.json({ habit: await toClientHabit(habit) })
   } catch (error) {
     console.error('Failed to fetch habit:', error)
     return NextResponse.json({ error: 'Failed to fetch habit' }, { status: 500 })
@@ -49,7 +49,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const updated = await updateHabitForUser(user.id, habitId, { title, description, category })
     if (!updated) return NextResponse.json({ error: 'Unable to update habit' }, { status: 400 })
 
-    return NextResponse.json({ habit: toClientHabit(updated) })
+    return NextResponse.json({ habit: await toClientHabit(updated) })
   } catch (error) {
     console.error('Failed to update habit:', error)
     return NextResponse.json({ error: 'Failed to update habit' }, { status: 500 })

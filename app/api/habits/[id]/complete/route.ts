@@ -23,7 +23,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     const habit = await completeHabitForUser(user.id, habitId)
     if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ habit: toClientHabit(habit), message: 'Habit marked complete' })
+    return NextResponse.json({ habit: await toClientHabit(habit), message: 'Habit marked complete' })
   } catch (error) {
     console.error('Failed to mark habit complete:', error)
     return NextResponse.json({ error: 'Failed to mark habit complete' }, { status: 500 })

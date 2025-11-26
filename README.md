@@ -119,6 +119,7 @@ The database is stored in a file called `stride.db` in the project root director
 - **File-Based**: All data stored in a single `stride.db` file
 - **ACID Compliant**: Full transaction support for data integrity
 - **Foreign Key Constraints**: Automatic cascade deletion for related records
+- **Local Timezone Support**: Habit streaks and completions use your local timezone, not UTC
 
 ### Database Schema
 
@@ -127,6 +128,25 @@ The application uses three main tables:
 1. **users** - User accounts with email and password
 2. **habits** - User habits with tracking information (streak, last_completed)
 3. **habit_completions** - Detailed completion history for each habit
+
+### Development & Testing Utilities
+
+**Seed Completion Data**
+
+For testing or demonstration purposes, you can populate existing habits with realistic completion history:
+
+```bash
+npx tsx scripts/seed-completions.ts
+```
+
+This script will:
+- Backdate all habits to 7 days ago (modifies `created_at` timestamps)
+- Add 3-5 random completion records to each habit
+- Calculate appropriate streak values
+- Include recent completions (today and yesterday)
+- Add random completions from the past 7 days
+
+**Note**: Only use this in development/testing environments. This script modifies habit creation dates to ensure sufficient history for demonstration.
 
 ### Backup Instructions
 
@@ -216,6 +236,8 @@ stride/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm test` - Run Vitest tests
+- `npx tsx scripts/seed-completions.ts` - Seed habit completion data for testing/demo
 
 ## Troubleshooting
 
