@@ -2,9 +2,9 @@
 
 ## Framework & Language
 
-- **Next.js 14** with App Router
+- **Next.js 15.5** with App Router
 - **TypeScript** (strict mode enabled)
-- **React 18**
+- **React 19**
 
 ## Database
 
