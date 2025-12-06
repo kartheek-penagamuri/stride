@@ -11,19 +11,20 @@ import {
 import { toClientHabit } from '../utils'
 
 type Params = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await ensureUsersTable()
     await ensureHabitsTable()
     await refreshHabitCompletionStatus(user.id)
 
-    const habitId = Number(params.id)
+    const { id } = await params
+    const habitId = Number(id)
     const habit = await findHabitById(user.id, habitId)
     if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -33,16 +34,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Failed to fetch habit' }, { status: 500 })
   }
 }
-
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await ensureUsersTable()
     await ensureHabitsTable()
 
-    const habitId = Number(params.id)
+    const { id } = await params
+    const habitId = Number(id)
     const body = await req.json()
     const { title, description, category } = body
 
@@ -58,13 +59,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await ensureUsersTable()
     await ensureHabitsTable()
 
-    const habitId = Number(params.id)
+    const { id } = await params
+    const habitId = Number(id)
     await deleteHabitForUser(user.id, habitId)
 
     return NextResponse.json({ message: 'Habit deleted' })

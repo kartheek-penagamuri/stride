@@ -48,10 +48,35 @@ When creating or modifying API routes:
 Example pattern:
 ```typescript
 export async function GET(request: Request) {
-  const user = await getAuthUserFromCookies();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  
   try {
+    const user = await getAuthUserFromCookies();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Your logic here
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+```
+
+**Dynamic Route Parameters (Next.js 15)**:
+In Next.js 15, route parameters in dynamic routes are now Promises and must be awaited:
+
+```typescript
+type Params = {
+  params: { id: string }
+}
+
+export async function GET(_req: NextRequest, { params }: Params) {
+  try {
+    const user = await getAuthUserFromCookies();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Await params before accessing properties
+    const { id } = await params
+    const habitId = Number(id)
+    
     // Your logic here
     return NextResponse.json(data);
   } catch (error) {
@@ -163,8 +188,8 @@ Always transform `DbHabit` to `Habit` using `toClientHabit()` before sending to 
 ## Authentication Flow
 
 - **Cookie**: `stride_user` contains `{ id, email, name }`
-- **Helper**: `getAuthUserFromCookies()` returns user object or null
-- **Protected Routes**: Check auth at the start of every protected API route
+- **Helper**: `getAuthUserFromCookies()` is an async function that returns user object or null
+- **Protected Routes**: Check auth at the start of every protected API route with `await getAuthUserFromCookies()`
 - **Unauthorized**: Return 401 status with error message
 - **Password Hashing**: Use bcryptjs with 12 rounds
 

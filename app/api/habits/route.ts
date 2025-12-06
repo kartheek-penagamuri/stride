@@ -18,7 +18,7 @@ function unauthorizedResponse(message = 'Unauthorized') {
 
 export async function GET() {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) {
       return unauthorizedResponse()
     }
@@ -42,7 +42,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) {
       return unauthorizedResponse()
     }

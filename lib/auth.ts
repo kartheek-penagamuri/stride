@@ -49,8 +49,9 @@ export async function createUserAccount(params: { email: string; password: strin
   return { user: toPublicUser(user) }
 }
 
-export function getAuthUserFromCookies() {
-  const cookie = cookies().get('stride_user')
+export async function getAuthUserFromCookies() {
+  const cookieStore = await cookies()
+  const cookie = cookieStore.get('stride_user')
   if (!cookie?.value) return null
 
   try {

@@ -222,7 +222,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--page-bg)] text-[var(--ink)] pb-20">
       {showAuthPrompt && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm text-[var(--ink)] shadow-lg animate-fade-in-up flex items-center gap-3">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 rounded-full border border-[var(--border)] bg-white px-6 py-3 text-sm text-[var(--ink)] shadow-lg animate-fade-in-up flex items-center gap-3 pointer-events-none">
           <div className="h-2 w-2 rounded-full bg-[var(--accent)]" />
           Please sign in to save your progress.
         </div>
@@ -246,13 +246,13 @@ export default function Dashboard() {
             <span className="font-bold text-[var(--ink)] hidden sm:inline-block">Dashboard</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative z-40">
             {user ? (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-[var(--muted)] hidden sm:inline-block">{user.email}</span>
                 <button
                   onClick={handleLogout}
-                  className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                  className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer relative z-40"
                 >
                   Logout
                 </button>
@@ -260,14 +260,14 @@ export default function Dashboard() {
             ) : null}
             <button
               onClick={openGoalModal}
-              className="hidden sm:flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors shadow-sm"
+              className="hidden sm:flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] transition-colors shadow-sm cursor-pointer relative z-40"
             >
               <Sparkles className="h-4 w-4" />
               New Goal
             </button>
             <button
               onClick={openCreateForm}
-              className="sm:hidden rounded-full bg-[var(--accent)] p-2 text-white shadow-sm"
+              className="sm:hidden rounded-full bg-[var(--accent)] p-2 text-white shadow-sm cursor-pointer relative z-40"
             >
               <Plus className="h-5 w-5" />
             </button>

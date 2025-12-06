@@ -8,18 +8,19 @@ import {
 import { toClientHabit } from '../../utils'
 
 type Params = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function POST(_req: NextRequest, { params }: Params) {
   try {
-    const user = getAuthUserFromCookies()
+    const user = await getAuthUserFromCookies()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     await ensureUsersTable()
     await ensureHabitsTable()
 
-    const habitId = Number(params.id)
+    const { id } = await params
+    const habitId = Number(id)
     const habit = await completeHabitForUser(user.id, habitId)
     if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
